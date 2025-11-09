@@ -1,0 +1,30 @@
+<div class="advent-calendar">
+  <div class="stats">
+    <p class="stats-text">
+      Doors opened: <span class="stats-count">{{ openedDoorsCount() }}</span> / 24
+    </p>
+  </div>
+
+  <div class="calendar-grid">
+    @for (door of doors(); track door.day) {
+      <div
+        [class]="getDoorClass(door)"
+        (click)="toggleDoor(door.day)"
+        [attr.data-day]="door.day"
+      >
+        <div class="door-front">
+          <div class="door-number">{{ door.day }}</div>
+          @if (!canOpenDoor(door.day)) {
+            <div class="lock-icon">🔒</div>
+          }
+        </div>
+        <div class="door-back" [style.background-color]="door.content.color">
+          <div class="door-content">
+            <div class="door-emoji">{{ door.content.emoji }}</div>
+            <p class="door-message">{{ door.content.message }}</p>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

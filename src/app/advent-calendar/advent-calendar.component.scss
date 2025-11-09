@@ -1,0 +1,211 @@
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10vh) translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(10vw);
+    opacity: 0.3;
+  }
+}
+
+@keyframes doorOpen {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(-180deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.advent-calendar {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.stats {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  font-weight: 600;
+
+  &-count {
+    color: #e74c3c;
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  perspective: 1000px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+.door {
+  position: relative;
+  aspect-ratio: 1;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+
+  &:hover:not(.door--locked) {
+    transform: scale(1.05);
+  }
+
+  &--locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+
+    .door-front {
+      background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    }
+  }
+
+  &--open {
+    .door-front {
+      animation: doorOpen 0.6s ease-in-out forwards;
+    }
+
+    .door-back {
+      animation: pulse 1s ease-in-out infinite;
+    }
+  }
+}
+
+.door-front,
+.door-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.door-front {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transform-origin: left;
+  z-index: 2;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 3s infinite;
+  }
+
+  .door-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+  }
+
+  .lock-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.5rem;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  }
+}
+
+.door-back {
+  background: #e74c3c;
+  transform: rotateY(180deg);
+  padding: 1rem;
+
+  .door-content {
+    text-align: center;
+    color: white;
+  }
+
+  .door-emoji {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .door-message {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    margin: 0;
+
+    @media (max-width: 480px) {
+      font-size: 0.75rem;
+    }
+  }
+}
+
+// Add some festive sparkle
+.calendar-grid::before {
+  content: '❄️';
+  position: fixed;
+  font-size: 2rem;
+  animation: snowfall 10s linear infinite;
+  pointer-events: none;
+  left: 10%;
+  opacity: 0.6;
+}
+
+.calendar-grid::after {
+  content: '❄️';
+  position: fixed;
+  font-size: 1.5rem;
+  animation: snowfall 12s linear infinite;
+  animation-delay: 2s;
+  pointer-events: none;
+  left: 80%;
+  opacity: 0.6;
+}
