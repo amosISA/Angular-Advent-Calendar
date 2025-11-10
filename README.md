@@ -38,8 +38,11 @@ npm install
 # Development server
 npm start
 
-# Build for production
+# Build for production (with SSR)
 npm run build
+
+# Build for GitHub Pages (static hosting)
+npm run build:ghpages
 
 # Serve SSR build
 npm run serve:ssr:advent-calendar
@@ -48,6 +51,34 @@ npm run serve:ssr:advent-calendar
 ### Development
 
 The development server will start at `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+
+### 🌐 GitHub Pages Deployment
+
+This app is configured for GitHub Pages deployment:
+
+1. **Build for GitHub Pages:**
+   ```bash
+   npm run build:ghpages
+   ```
+
+2. **Commit and Push:**
+   ```bash
+   git add docs/
+   git commit -m "Deploy to GitHub Pages"
+   git push
+   ```
+
+3. **Configure GitHub Pages:**
+   - Go to your repository settings on GitHub
+   - Navigate to Pages section
+   - Set Source to: Deploy from a branch
+   - Select branch: `claude/angular-advent-calendar-ssr-011CUxsF9qw39KwfY6UJFguL`
+   - Select folder: `/docs`
+   - Click Save
+
+The app will be available at: `https://[your-username].github.io/Angular-Advent-Calendar/`
+
+**Note:** The GitHub Pages build uses static hosting (no SSR). For full SSR functionality, deploy to a Node.js hosting platform.
 
 ## 🏗️ Project Structure
 
