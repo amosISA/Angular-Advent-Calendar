@@ -1,8 +1,13 @@
 <div class="advent-calendar">
-  <div class="stats">
-    <p class="stats-text">
-      Doors opened: <span class="stats-count">{{ openedDoorsCount() }}</span> / 24
-    </p>
+  <div class="calendar-header">
+    <div class="snowflake">❄️</div>
+    <h2 class="calendar-title">Advent Calendar 2024</h2>
+    <div class="snowflake">❄️</div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" [style.width.%]="(openedDoorsCount() / 24) * 100"></div>
+    <span class="progress-text">{{ openedDoorsCount() }} of 24 doors opened</span>
   </div>
 
   <div class="calendar-grid">
@@ -12,16 +17,27 @@
         (click)="toggleDoor(door.day)"
         [attr.data-day]="door.day"
       >
-        <div class="door-front">
-          <div class="door-number">{{ door.day }}</div>
-          @if (!canOpenDoor(door.day)) {
-            <div class="lock-icon">🔒</div>
-          }
-        </div>
-        <div class="door-back" [style.background-color]="door.content.color">
-          <div class="door-content">
-            <div class="door-emoji">{{ door.content.emoji }}</div>
-            <p class="door-message">{{ door.content.message }}</p>
+        <div class="door-inner">
+          <div class="door-front">
+            <div class="door-decoration">
+              <div class="door-wreath">🎄</div>
+            </div>
+            <div class="door-number">{{ door.day }}</div>
+            <div class="door-date">December</div>
+            @if (!canOpenDoor(door.day)) {
+              <div class="lock-overlay">
+                <div class="lock-icon">🔒</div>
+                <div class="lock-text">Locked</div>
+              </div>
+            } @else if (!door.isOpen) {
+              <div class="tap-hint">Tap to open</div>
+            }
+          </div>
+          <div class="door-back" [style.background]="door.content.color">
+            <div class="door-content">
+              <div class="door-emoji">{{ door.content.emoji }}</div>
+              <p class="door-message">{{ door.content.message }}</p>
+            </div>
           </div>
         </div>
       </div>
