@@ -1,11 +1,13 @@
+// ==================== ANIMATIONS ====================
+
 @keyframes snowfall {
   0% {
     transform: translateY(-10vh) translateX(0) rotate(0deg);
     opacity: 1;
   }
   100% {
-    transform: translateY(100vh) translateX(10vw) rotate(360deg);
-    opacity: 0.3;
+    transform: translateY(110vh) translateX(20vw) rotate(720deg);
+    opacity: 0.2;
   }
 }
 
@@ -32,7 +34,7 @@
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(255, 215, 0, 0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8), 0 0 80px rgba(255, 215, 0, 0.4);
   }
 }
 
@@ -47,11 +49,121 @@
   }
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes progressFill {
   from {
     width: 0;
   }
 }
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes doorStagger {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes achievementSlide {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes confettiPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// ==================== THEME VARIABLES ====================
+
+.advent-calendar {
+  --bg-gradient-start: #0f2027;
+  --bg-gradient-mid: #203a43;
+  --bg-gradient-end: #2c5364;
+  --door-front-start: #c41e3a;
+  --door-front-end: #8b0000;
+  --accent-color: #ffd700;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+
+  &[data-theme="winter"] {
+    --bg-gradient-start: #1a2a6c;
+    --bg-gradient-mid: #b21f1f;
+    --bg-gradient-end: #fdbb2d;
+    --door-front-start: #667eea;
+    --door-front-end: #764ba2;
+    --accent-color: #a8e6ff;
+  }
+
+  &[data-theme="elegant"] {
+    --bg-gradient-start: #141e30;
+    --bg-gradient-mid: #243b55;
+    --bg-gradient-end: #141e30;
+    --door-front-start: #c94b4b;
+    --door-front-end: #4b134f;
+    --accent-color: #e0c3fc;
+  }
+
+  &[data-theme="playful"] {
+    --bg-gradient-start: #ff6b6b;
+    --bg-gradient-mid: #4ecdc4;
+    --bg-gradient-end: #ffe66d;
+    --door-front-start: #ff6b9d;
+    --door-front-end: #c44569;
+    --accent-color: #ffa502;
+  }
+}
+
+// ==================== MAIN CONTAINER ====================
 
 .advent-calendar {
   width: 100%;
@@ -59,7 +171,137 @@
   margin: 0 auto;
   padding: 1rem 2rem 3rem;
   animation: slideDown 0.6s ease-out;
+  position: relative;
 }
+
+// ==================== CONFETTI CANVAS ====================
+
+.confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &.active {
+    opacity: 1;
+  }
+}
+
+// ==================== CONTROL BAR ====================
+
+.control-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 2px solid var(--glass-border);
+  animation: slideDown 0.6s ease-out 0.1s both;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.theme-switcher {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.theme-btn {
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  &.active {
+    background: var(--accent-color);
+    color: #000;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  }
+
+  @media (max-width: 480px) {
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+
+.control-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.control-btn {
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  .badge {
+    background: #ff6b6b;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+}
+
+// ==================== CALENDAR HEADER ====================
 
 .calendar-header {
   display: flex;
@@ -68,34 +310,52 @@
   gap: 2rem;
   margin-bottom: 2rem;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
   backdrop-filter: blur(10px);
   border-radius: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--glass-border);
+  animation: slideDown 0.6s ease-out 0.2s both;
 
   .snowflake {
     font-size: 2.5rem;
-    animation: pulse 2s ease-in-out infinite;
+    animation: float 3s ease-in-out infinite;
+
+    &:first-child {
+      animation-delay: 0s;
+    }
+
+    &:last-child {
+      animation-delay: 1.5s;
+    }
   }
 
   .calendar-title {
     font-size: clamp(1.8rem, 4vw, 3rem);
     font-weight: 700;
-    color: white;
+    color: var(--text-primary);
     margin: 0;
     text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
     letter-spacing: 1px;
+    background: linear-gradient(45deg, var(--accent-color), #fff, var(--accent-color));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
   }
 }
+
+// ==================== PROGRESS BAR ====================
 
 .progress-bar {
   position: relative;
   height: 40px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
   border-radius: 20px;
   margin-bottom: 3rem;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--glass-border);
+  animation: slideDown 0.6s ease-out 0.3s both;
 
   .progress-fill {
     position: absolute;
@@ -106,6 +366,7 @@
     border-radius: 20px;
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     animation: progressFill 1.5s ease-out;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
   }
 
   .progress-text {
@@ -116,11 +377,13 @@
     height: 100%;
     font-size: 1rem;
     font-weight: 600;
-    color: white;
+    color: var(--text-primary);
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
     z-index: 1;
   }
 }
+
+// ==================== CALENDAR GRID ====================
 
 .calendar-grid {
   display: grid;
@@ -144,14 +407,23 @@
   }
 }
 
+// ==================== DOOR STYLES ====================
+
 .door {
   position: relative;
   aspect-ratio: 0.8;
   cursor: pointer;
   transition: transform 0.3s ease;
+  animation: doorStagger 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 
   &:hover:not(.door--locked) {
-    transform: translateY(-8px);
+    transform: translateY(-12px) scale(1.05);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 4px;
+    border-radius: 16px;
   }
 
   &--locked {
@@ -159,12 +431,21 @@
 
     .door-front {
       background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+      filter: grayscale(0.3);
+    }
+
+    &:hover {
+      transform: none;
     }
   }
 
   &--open {
     .door-inner {
       transform: rotateY(-180deg);
+    }
+
+    .door-back {
+      animation: pulse 2s ease-in-out infinite;
     }
   }
 }
@@ -188,14 +469,15 @@
 }
 
 .door-front {
-  background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
+  background: linear-gradient(135deg, var(--door-front-start) 0%, var(--door-front-end) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
   border: 3px solid rgba(255, 215, 0, 0.3);
   position: relative;
 
@@ -220,6 +502,7 @@
     .door-wreath {
       font-size: 1.8rem;
       filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+      animation: float 2s ease-in-out infinite;
     }
   }
 
@@ -229,7 +512,8 @@
     color: white;
     text-shadow:
       3px 3px 6px rgba(0, 0, 0, 0.4),
-      0 0 20px rgba(255, 215, 0, 0.4);
+      0 0 20px var(--accent-color),
+      0 0 30px var(--accent-color);
     z-index: 1;
     margin-top: 1rem;
   }
@@ -237,7 +521,7 @@
   .door-date {
     font-size: 0.85rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-top: 0.5rem;
@@ -250,7 +534,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -293,20 +577,21 @@
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.3),
-    inset 0 0 40px rgba(255, 255, 255, 0.1);
+    0 15px 40px rgba(0, 0, 0, 0.4),
+    inset 0 0 60px rgba(255, 255, 255, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
   border: 3px solid rgba(255, 255, 255, 0.3);
 
   .door-content {
     text-align: center;
     padding: 1.5rem;
-    animation: pulse 1s ease-in-out infinite;
   }
 
   .door-emoji {
     font-size: clamp(3rem, 6vw, 5rem);
     margin-bottom: 1rem;
     filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.3));
+    animation: float 3s ease-in-out infinite;
   }
 
   .door-message {
@@ -315,6 +600,16 @@
     line-height: 1.5;
     color: white;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+    margin: 0 0 0.8rem 0;
+    word-wrap: break-word;
+  }
+
+  .door-quote {
+    font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+    font-style: italic;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
     margin: 0;
     word-wrap: break-word;
   }
@@ -327,29 +622,329 @@
 
     &:hover {
       animation: glow 1.5s ease-in-out infinite;
-      border-color: rgba(255, 215, 0, 0.6);
+      border-color: var(--accent-color);
     }
   }
 }
 
-// Add some festive floating elements (simplified)
-.calendar-grid::before,
-.calendar-grid::after {
-  content: '❄️';
+// ==================== ACHIEVEMENTS ====================
+
+.achievements-overlay {
   position: fixed;
-  font-size: 1.5rem;
-  animation: snowfall 15s linear infinite;
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.achievements-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.4s ease;
+}
+
+.achievements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+
+  h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(90deg);
+    }
+  }
+}
+
+.achievements-list {
+  padding: 1.5rem 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.achievement-item {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
   opacity: 0.5;
+
+  &.unlocked {
+    opacity: 1;
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  }
+
+  &:hover {
+    transform: translateX(8px);
+  }
+
+  .achievement-icon {
+    font-size: 3rem;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .achievement-info {
+    flex: 1;
+
+    h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.2rem;
+      color: white;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  .achievement-badge {
+    font-size: 2rem;
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 8px var(--accent-color));
+  }
+}
+
+.achievement-progress {
+  margin-top: 0.8rem;
+
+  .achievement-progress-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+
+    .achievement-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-color), #4ecdc4);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+  }
+
+  .achievement-progress-text {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+// ==================== ACHIEVEMENT NOTIFICATIONS ====================
+
+.achievement-notifications {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  pointer-events: none;
+
+  @media (max-width: 768px) {
+    right: 1rem;
+    left: 1rem;
+  }
+}
+
+.achievement-notification {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(255, 107, 107, 0.95));
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: achievementSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 300px;
+
+  @media (max-width: 768px) {
+    min-width: auto;
+  }
+
+  .notification-icon {
+    font-size: 3rem;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .notification-content {
+    flex: 1;
+
+    .notification-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 0.3rem;
+    }
+
+    .notification-text {
+      font-size: 0.95rem;
+      color: rgba(0, 0, 0, 0.8);
+    }
+  }
+}
+
+// ==================== SNOWFLAKES ====================
+
+.snowflakes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
   z-index: -1;
+  overflow: hidden;
 }
 
-.calendar-grid::before {
-  left: 15%;
-  animation-delay: 0s;
+.snowflake-particle {
+  position: absolute;
+  top: -10vh;
+  font-size: clamp(1rem, 2vw, 1.8rem);
+  animation: snowfall 15s linear infinite;
+  opacity: 0.6;
+
+  &:nth-child(odd) {
+    animation-duration: 12s;
+  }
+
+  &:nth-child(3n) {
+    animation-duration: 18s;
+  }
 }
 
-.calendar-grid::after {
-  left: 75%;
-  animation-delay: 5s;
+// ==================== ACCESSIBILITY ====================
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .snowflake-particle,
+  .confetti-canvas {
+    display: none;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .door-front {
+    border-width: 4px;
+  }
+
+  .control-btn,
+  .theme-btn {
+    border-width: 3px;
+  }
+}
+
+// ==================== RESPONSIVE TWEAKS ====================
+
+@media (max-width: 480px) {
+  .advent-calendar {
+    padding: 0.5rem 1rem 2rem;
+  }
+
+  .control-bar {
+    padding: 1rem;
+  }
+
+  .calendar-header {
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+
+    .snowflake {
+      font-size: 2rem;
+    }
+  }
+
+  .progress-bar {
+    height: 35px;
+    margin-bottom: 2rem;
+
+    .progress-text {
+      font-size: 0.85rem;
+    }
+  }
+}
+
+// ==================== PRINT STYLES ====================
+
+@media print {
+  .confetti-canvas,
+  .control-bar,
+  .achievements-overlay,
+  .achievement-notifications,
+  .snowflakes {
+    display: none;
+  }
+
+  .advent-calendar {
+    background: white;
+  }
+
+  .door {
+    break-inside: avoid;
+  }
 }

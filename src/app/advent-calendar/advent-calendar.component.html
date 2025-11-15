@@ -1,23 +1,98 @@
-<div class="advent-calendar">
+<div class="advent-calendar" [attr.data-theme]="theme()">
+  <!-- Confetti Canvas -->
+  <canvas #confettiCanvas class="confetti-canvas" [class.active]="confettiActive()"></canvas>
+
+  <!-- Control Bar -->
+  <div class="control-bar">
+    <div class="theme-switcher">
+      <button
+        class="theme-btn"
+        [class.active]="theme() === 'classic'"
+        (click)="changeTheme('classic')"
+        aria-label="Switch to classic theme"
+      >
+        🎄 Classic
+      </button>
+      <button
+        class="theme-btn"
+        [class.active]="theme() === 'winter'"
+        (click)="changeTheme('winter')"
+        aria-label="Switch to winter theme"
+      >
+        ❄️ Winter
+      </button>
+      <button
+        class="theme-btn"
+        [class.active]="theme() === 'elegant'"
+        (click)="changeTheme('elegant')"
+        aria-label="Switch to elegant theme"
+      >
+        ✨ Elegant
+      </button>
+      <button
+        class="theme-btn"
+        [class.active]="theme() === 'playful'"
+        (click)="changeTheme('playful')"
+        aria-label="Switch to playful theme"
+      >
+        🎉 Playful
+      </button>
+    </div>
+
+    <div class="control-buttons">
+      <button
+        class="control-btn"
+        (click)="toggleSound()"
+        [attr.aria-label]="soundEnabled() ? 'Mute sounds' : 'Enable sounds'"
+      >
+        {{ soundEnabled() ? '🔊' : '🔇' }}
+      </button>
+      <button
+        class="control-btn"
+        (click)="toggleAchievements()"
+        aria-label="View achievements"
+      >
+        🏆 <span class="badge">{{ unlockedAchievementsCount() }}</span>
+      </button>
+      <button
+        class="control-btn"
+        (click)="shareProgress()"
+        aria-label="Share your progress"
+      >
+        📤 Share
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar Header -->
   <div class="calendar-header">
     <div class="snowflake">❄️</div>
     <h2 class="calendar-title">Advent Calendar 2024</h2>
     <div class="snowflake">❄️</div>
   </div>
 
+  <!-- Progress Bar -->
   <div class="progress-bar">
     <div class="progress-fill" [style.width.%]="(openedDoorsCount() / 24) * 100"></div>
     <span class="progress-text">{{ openedDoorsCount() }} of 24 doors opened</span>
   </div>
 
+  <!-- Calendar Grid -->
   <div class="calendar-grid">
-    @for (door of doors(); track door.day) {
+    @for (door of doors(); track door.day; let index = $index) {
       <div
         [class]="getDoorClass(door)"
+        [style.animation-delay.ms]="index * 50"
         (click)="toggleDoor(door.day)"
+        (keydown)="handleKeyDown($event, door.day)"
         [attr.data-day]="door.day"
+        [attr.tabindex]="canOpenDoor(door.day) ? 0 : -1"
+        [attr.role]="'button'"
+        [attr.aria-label]="'Day ' + door.day + (door.isOpen ? ' opened' : canOpenDoor(door.day) ? ' ready to open' : ' locked')"
+        [attr.aria-pressed]="door.isOpen"
       >
         <div class="door-inner">
+          <!-- Door Front -->
           <div class="door-front">
             <div class="door-decoration">
               <div class="door-wreath">🎄</div>
@@ -33,13 +108,79 @@
               <div class="tap-hint">Tap to open</div>
             }
           </div>
+
+          <!-- Door Back -->
           <div class="door-back" [style.background]="door.content.color">
             <div class="door-content">
               <div class="door-emoji">{{ door.content.emoji }}</div>
               <p class="door-message">{{ door.content.message }}</p>
+              @if (door.content.quote) {
+                <p class="door-quote">{{ door.content.quote }}</p>
+              }
             </div>
           </div>
         </div>
+      </div>
+    }
+  </div>
+
+  <!-- Achievements Panel -->
+  @if (showAchievements()) {
+    <div class="achievements-overlay" (click)="toggleAchievements()">
+      <div class="achievements-panel" (click)="$event.stopPropagation()">
+        <div class="achievements-header">
+          <h3>🏆 Achievements</h3>
+          <button class="close-btn" (click)="toggleAchievements()" aria-label="Close achievements">✕</button>
+        </div>
+        <div class="achievements-list">
+          @for (achievement of achievements(); track achievement.id) {
+            <div class="achievement-item" [class.unlocked]="achievement.unlocked">
+              <div class="achievement-icon">{{ achievement.icon }}</div>
+              <div class="achievement-info">
+                <h4>{{ achievement.title }}</h4>
+                <p>{{ achievement.description }}</p>
+                @if (achievement.progress !== undefined && achievement.total !== undefined) {
+                  <div class="achievement-progress">
+                    <div class="achievement-progress-bar">
+                      <div
+                        class="achievement-progress-fill"
+                        [style.width.%]="(achievement.progress / achievement.total) * 100"
+                      ></div>
+                    </div>
+                    <span class="achievement-progress-text">
+                      {{ achievement.progress }} / {{ achievement.total }}
+                    </span>
+                  </div>
+                }
+              </div>
+              @if (achievement.unlocked) {
+                <div class="achievement-badge">✓</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Achievement Notifications -->
+  <div class="achievement-notifications">
+    @for (achievement of newlyUnlockedAchievements(); track achievement.id) {
+      <div class="achievement-notification">
+        <div class="notification-icon">{{ achievement.icon }}</div>
+        <div class="notification-content">
+          <div class="notification-title">Achievement Unlocked!</div>
+          <div class="notification-text">{{ achievement.title }}</div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Floating Snowflakes -->
+  <div class="snowflakes" aria-hidden="true">
+    @for (flake of [1,2,3,4,5,6,7,8,9,10]; track flake) {
+      <div class="snowflake-particle" [style.left.%]="flake * 10" [style.animation-delay.s]="flake * 0.5">
+        ❄️
       </div>
     }
   </div>
