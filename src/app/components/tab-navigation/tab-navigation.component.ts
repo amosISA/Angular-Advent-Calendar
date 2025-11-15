@@ -1,9 +1,11 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+export type TabType = 'calendar' | 'story' | 'ai-generated';
+
 /**
  * Tab Navigation Component
- * Provides tab switching between Advent Calendar and Christmas Story
+ * Provides tab switching between Advent Calendar, Christmas Story, and AI-Generated Content
  */
 @Component({
   selector: 'app-tab-navigation',
@@ -27,14 +29,18 @@ import { CommonModule } from '@angular/common';
         </button>
         <button
           class="tab-button"
-          [class.active]="activeTab() === 'story'"
-          (click)="setActiveTab('story')"
+          [class.active]="activeTab() === 'ai-generated'"
+          (click)="setActiveTab('ai-generated')"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke-width="2"/>
+            <path d="M2 17L12 22L22 17" stroke-width="2"/>
+            <path d="M2 12L12 17L22 12" stroke-width="2"/>
           </svg>
-          Christmas Story
+          AI Generated
+          @if (hasAIContent()) {
+            <span class="new-badge">✨</span>
+          }
         </button>
       </div>
       <div class="tab-indicator" [style.transform]="getIndicatorTransform()"></div>
@@ -96,6 +102,23 @@ import { CommonModule } from '@angular/common';
       stroke: #ffd700;
     }
 
+    .new-badge {
+      font-size: 0.75rem;
+      margin-left: 4px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.7;
+        transform: scale(1.2);
+      }
+    }
+
     .tab-indicator {
       position: absolute;
       top: 6px;
@@ -122,13 +145,21 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class TabNavigationComponent {
-  readonly activeTab = signal<'calendar' | 'story'>('calendar');
+  readonly activeTab = signal<TabType>('calendar');
+  readonly hasAIContent = signal<boolean>(false);
 
-  setActiveTab(tab: 'calendar' | 'story'): void {
+  setActiveTab(tab: TabType): void {
     this.activeTab.set(tab);
   }
 
   getIndicatorTransform(): string {
-    return this.activeTab() === 'calendar' ? 'translateX(0)' : 'translateX(calc(100% + 14px))';
+    const tab = this.activeTab();
+    if (tab === 'calendar') return 'translateX(0)';
+    if (tab === 'ai-generated') return 'translateX(calc(100% + 14px))';
+    return 'translateX(0)';
+  }
+
+  setHasAIContent(has: boolean): void {
+    this.hasAIContent.set(has);
   }
 }

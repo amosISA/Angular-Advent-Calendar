@@ -16,8 +16,8 @@
 
     @if (tabNav.activeTab() === 'calendar') {
       <app-advent-calendar />
-    } @else {
-      <app-christmas-story />
+    } @else if (tabNav.activeTab() === 'ai-generated') {
+      <app-dynamic-component-container #dynamicContainer />
     }
   </main>
 

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AngularIntrospectionService } from './angular-introspection.service';
 import { ComponentInspectorService } from './component-inspector.service';
+import { RuntimeComponentCompilerService, ComponentCode } from './runtime-component-compiler.service';
 
 /**
  * RuntimeModificationService
@@ -13,6 +14,7 @@ import { ComponentInspectorService } from './component-inspector.service';
 export class RuntimeModificationService {
   private introspection = inject(AngularIntrospectionService);
   private inspector = inject(ComponentInspectorService);
+  private compiler = inject(RuntimeComponentCompilerService);
 
   /**
    * Execute an AI action
@@ -38,6 +40,9 @@ export class RuntimeModificationService {
 
         case 'CHANGE_STYLE':
           return this.changeStyle(action.payload);
+
+        case 'CREATE_COMPONENT':
+          return await this.createComponent(action.payload);
 
         case 'EXPLAIN_CODE':
         case 'NONE':
@@ -168,6 +173,50 @@ export class RuntimeModificationService {
   }
 
   /**
+   * Create a component at runtime
+   */
+  private async createComponent(payload: any): Promise<{ success: boolean; message: string }> {
+    const { componentCode } = payload;
+
+    if (!componentCode || !componentCode.template) {
+      return { success: false, message: 'Invalid component code. Must include template.' };
+    }
+
+    try {
+      // Get dynamic container and tab navigation from window
+      const tabNav = (window as any).__appTabNav;
+      const dynamicContainer = (window as any).__appDynamicContainer;
+
+      if (!dynamicContainer) {
+        return { success: false, message: 'Dynamic component container not available' };
+      }
+
+      // Get container ref
+      const container = dynamicContainer.getContainer();
+
+      // Compile and create component
+      await this.compiler.compileAndCreateComponent(componentCode, container);
+
+      // Update tab state
+      dynamicContainer.setNotEmpty();
+      if (tabNav) {
+        tabNav.setHasAIContent(true);
+        tabNav.setActiveTab('ai-generated');
+      }
+
+      return {
+        success: true,
+        message: `Component "${componentCode.name || 'DynamicComponent'}" created successfully! Check the "AI Generated" tab.`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Failed to create component: ${error.message}`
+      };
+    }
+  }
+
+  /**
    * Validate action before execution
    */
   validateAction(action: any): { valid: boolean; reason?: string } {
@@ -185,6 +234,7 @@ export class RuntimeModificationService {
       'INSPECT_ELEMENT',
       'MODIFY_PROPERTY',
       'CHANGE_STYLE',
+      'CREATE_COMPONENT',
       'EXPLAIN_CODE',
       'NONE'
     ];
