@@ -16,7 +16,7 @@ export class GeminiAIService {
   private introspection = inject(AngularIntrospectionService);
 
   private apiKey = signal<string>('');
-  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
   /**
    * Set API key for Gemini
