@@ -52,8 +52,16 @@ export class GeminiAIService {
       const systemPrompt = this.buildSystemPrompt();
       const fullPrompt = this.buildFullPrompt(message, conversationHistory, systemPrompt);
 
+      console.log('Sending to Gemini:', {
+        model: this.selectedModel(),
+        messageLength: fullPrompt.length,
+        historyLength: conversationHistory.length
+      });
+
       const response = await this.callGeminiAPI(fullPrompt);
       const parsedResponse = this.parseResponse(response);
+
+      console.log('Gemini response:', parsedResponse);
 
       return parsedResponse;
     } catch (error: any) {
@@ -365,19 +373,19 @@ ${message}
       safetySettings: [
         {
           category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          threshold: "BLOCK_ONLY_HIGH"
         },
         {
           category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          threshold: "BLOCK_ONLY_HIGH"
         },
         {
           category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          threshold: "BLOCK_ONLY_HIGH"
         },
         {
           category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          threshold: "BLOCK_ONLY_HIGH"
         }
       ]
     };
@@ -397,11 +405,27 @@ ${message}
 
     const data = await response.json();
 
+    // Check for blocked content or safety issues
     if (!data.candidates || data.candidates.length === 0) {
-      throw new Error('No response from Gemini API');
+      console.error('Gemini API response:', data);
+      throw new Error('No response from Gemini API. The content might have been blocked by safety filters.');
     }
 
-    return data.candidates[0].content.parts[0].text;
+    const candidate = data.candidates[0];
+
+    // Check if content was blocked
+    if (candidate.finishReason === 'SAFETY' || !candidate.content) {
+      console.error('Content blocked by safety filters:', candidate);
+      throw new Error('Response blocked by safety filters. Try rephrasing your request.');
+    }
+
+    // Check if content and parts exist
+    if (!candidate.content.parts || candidate.content.parts.length === 0) {
+      console.error('No content parts in response:', candidate);
+      throw new Error('Invalid response format from Gemini API');
+    }
+
+    return candidate.content.parts[0].text;
   }
 
   /**
@@ -409,26 +433,38 @@ ${message}
    */
   private parseResponse(responseText: string): GeminiResponse {
     try {
+      // Remove markdown code blocks if present
+      let cleanedText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
       // Try to extract JSON from response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          message: parsed.message || responseText,
-          action: parsed.action || null
-        };
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+
+          // Validate the response has required fields
+          if (parsed.message) {
+            return {
+              message: parsed.message,
+              action: parsed.action || null
+            };
+          }
+        } catch (parseError) {
+          console.warn('JSON parse error:', parseError);
+        }
       }
 
       // Fallback: treat entire response as message
+      console.warn('Could not parse JSON response, using raw text');
       return {
         message: responseText,
         action: null
       };
     } catch (error) {
-      console.warn('Failed to parse AI response as JSON, using raw text:', error);
+      console.error('Failed to parse AI response:', error);
       return {
-        message: responseText,
+        message: responseText || 'Error parsing response',
         action: null
       };
     }
