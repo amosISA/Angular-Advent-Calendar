@@ -12,7 +12,13 @@
   </header>
 
   <main class="main-content">
-    <app-advent-calendar></app-advent-calendar>
+    <app-tab-navigation #tabNav />
+
+    @if (tabNav.activeTab() === 'calendar') {
+      <app-advent-calendar />
+    } @else {
+      <app-christmas-story />
+    }
   </main>
 
   <footer class="footer">

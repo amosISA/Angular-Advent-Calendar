@@ -157,6 +157,88 @@
       opacity: 0.8;
     }
   }
+
+  .model-selector {
+    margin-bottom: 16px;
+    text-align: left;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #4285f4;
+      }
+    }
+  }
+}
+
+// Model Info (when configured)
+.model-info {
+  padding: 16px 20px;
+  background: rgba(102, 126, 234, 0.05);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+  flex-shrink: 0;
+
+  .model-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    label {
+      color: #333;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    select {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      &:hover {
+        border-color: #667eea;
+      }
+    }
+  }
+
+  .model-notification {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    animation: slideInDown 0.3s ease, fadeOut 0.3s ease 2.7s;
+  }
 }
 
 // Messages
@@ -408,6 +490,19 @@
           color: #4285f4;
         }
       }
+
+      &.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+
+        svg {
+          color: white;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, #5568d3 0%, #65408b 100%);
+        }
+      }
     }
   }
 
@@ -467,6 +562,60 @@
         cursor: not-allowed;
       }
     }
+  }
+}
+
+// Animations
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulseHighlight {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
   }
 }
 

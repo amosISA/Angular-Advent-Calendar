@@ -16,13 +16,28 @@ export class GeminiAIService {
   private introspection = inject(AngularIntrospectionService);
 
   private apiKey = signal<string>('');
-  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  private selectedModel = signal<string>('gemini-2.5-flash');
+  private readonly BASE_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
   /**
    * Set API key for Gemini
    */
   setApiKey(key: string): void {
     this.apiKey.set(key);
+  }
+
+  /**
+   * Set the AI model to use
+   */
+  setModel(modelId: string): void {
+    this.selectedModel.set(modelId);
+  }
+
+  /**
+   * Get the full API URL for the selected model
+   */
+  private getApiUrl(): string {
+    return `${this.BASE_API_URL}${this.selectedModel()}:generateContent`;
   }
 
   /**
@@ -148,7 +163,7 @@ ${message}
    * Call Gemini API
    */
   private async callGeminiAPI(prompt: string): Promise<string> {
-    const url = `${this.API_URL}?key=${this.apiKey()}`;
+    const url = `${this.getApiUrl()}?key=${this.apiKey()}`;
 
     const requestBody = {
       contents: [{

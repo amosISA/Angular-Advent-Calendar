@@ -32,6 +32,36 @@ export class AIAssistantChatComponent {
   readonly apiKey = signal<string>('');
   readonly isConfigured = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
+  readonly selectedModel = signal<string>('gemini-2.5-flash');
+  readonly modelChangeNotification = signal<boolean>(false);
+
+  // Available AI models
+  readonly availableModels = [
+    {
+      id: 'gemini-2.5-flash',
+      name: 'Gemini 2.5 Flash',
+      provider: 'Google',
+      apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      keyUrl: 'https://aistudio.google.com/app/apikey',
+      free: true
+    },
+    {
+      id: 'gemini-1.5-flash',
+      name: 'Gemini 1.5 Flash',
+      provider: 'Google',
+      apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+      keyUrl: 'https://aistudio.google.com/app/apikey',
+      free: true
+    },
+    {
+      id: 'gemini-1.5-pro',
+      name: 'Gemini 1.5 Pro',
+      provider: 'Google',
+      apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
+      keyUrl: 'https://aistudio.google.com/app/apikey',
+      free: true
+    }
+  ];
 
   // View children
   private messagesContainer = viewChild<ElementRef>('messagesContainer');
@@ -45,12 +75,19 @@ export class AIAssistantChatComponent {
   ];
 
   constructor() {
-    // Load API key from localStorage (browser only)
+    // Load API key and model from localStorage (browser only)
     if (this.isBrowser) {
       const savedKey = localStorage.getItem('gemini-api-key');
+      const savedModel = localStorage.getItem('selected-model');
+
+      if (savedModel) {
+        this.selectedModel.set(savedModel);
+      }
+
       if (savedKey) {
         this.apiKey.set(savedKey);
         this.geminiService.setApiKey(savedKey);
+        this.geminiService.setModel(this.selectedModel());
         this.isConfigured.set(true);
       }
     }
@@ -238,5 +275,56 @@ export class AIAssistantChatComponent {
    */
   get inspectorActive(): boolean {
     return this.inspector.inspecting();
+  }
+
+  /**
+   * Toggle inspector mode
+   */
+  toggleInspector(): void {
+    this.inspector.toggleInspection();
+  }
+
+  /**
+   * Handle model change
+   */
+  onModelChange(): void {
+    if (!this.isBrowser) return;
+
+    const modelId = this.selectedModel();
+    localStorage.setItem('selected-model', modelId);
+
+    if (this.isConfigured()) {
+      this.geminiService.setModel(modelId);
+
+      // Show notification
+      this.modelChangeNotification.set(true);
+      setTimeout(() => {
+        this.modelChangeNotification.set(false);
+      }, 3000);
+    }
+  }
+
+  /**
+   * Get API key placeholder based on selected model
+   */
+  getApiKeyPlaceholder(): string {
+    const model = this.availableModels.find(m => m.id === this.selectedModel());
+    return model ? `Enter ${model.provider} API key...` : 'Enter API key...';
+  }
+
+  /**
+   * Get API key URL based on selected model
+   */
+  getApiKeyUrl(): string {
+    const model = this.availableModels.find(m => m.id === this.selectedModel());
+    return model?.keyUrl || 'https://aistudio.google.com/app/apikey';
+  }
+
+  /**
+   * Get selected model name
+   */
+  getSelectedModelName(): string {
+    const model = this.availableModels.find(m => m.id === this.selectedModel());
+    return model?.name || this.selectedModel();
   }
 }
