@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - feature/ai-expertise
+      - claude/feature-ai-expertise-012MJwB5wZU9c9WnX89NEYvA
   workflow_dispatch:
 
 permissions:
