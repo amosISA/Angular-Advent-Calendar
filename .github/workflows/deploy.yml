@@ -3,7 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/angular-advent-calendar-ssr-011CUxsF9qw39KwfY6UJFguL
+      - claude/deploy-now-01BNURf5jvi2RDxgFz3AD5e6
+      - main
   workflow_dispatch:
 
 permissions:
