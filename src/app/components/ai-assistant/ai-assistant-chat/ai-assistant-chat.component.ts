@@ -1,0 +1,242 @@
+import { Component, inject, signal, effect, ElementRef, viewChild, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { GeminiAIService } from '../../../services/ai-assistant/gemini-ai.service';
+import { RuntimeModificationService } from '../../../services/ai-assistant/runtime-modification.service';
+import { ComponentInspectorService } from '../../../services/ai-assistant/component-inspector.service';
+import { ChatMessage } from '../../../services/ai-assistant/models';
+
+/**
+ * AIAssistantChat Component
+ * Main chat interface for the AI assistant
+ */
+@Component({
+  selector: 'app-ai-assistant-chat',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './ai-assistant-chat.component.html',
+  styleUrls: ['./ai-assistant-chat.component.scss']
+})
+export class AIAssistantChatComponent {
+  private geminiService = inject(GeminiAIService);
+  private runtimeMod = inject(RuntimeModificationService);
+  private inspector = inject(ComponentInspectorService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+
+  // Signals
+  readonly isOpen = signal<boolean>(false);
+  readonly messages = signal<ChatMessage[]>([]);
+  readonly isLoading = signal<boolean>(false);
+  readonly userInput = signal<string>('');
+  readonly apiKey = signal<string>('');
+  readonly isConfigured = signal<boolean>(false);
+  readonly errorMessage = signal<string>('');
+
+  // View children
+  private messagesContainer = viewChild<ElementRef>('messagesContainer');
+
+  // Suggested questions
+  readonly suggestedQuestions = [
+    'What components are on this page?',
+    'Enable element inspector',
+    'Highlight the advent calendar',
+    'Explain how this app works'
+  ];
+
+  constructor() {
+    // Load API key from localStorage (browser only)
+    if (this.isBrowser) {
+      const savedKey = localStorage.getItem('gemini-api-key');
+      if (savedKey) {
+        this.apiKey.set(savedKey);
+        this.geminiService.setApiKey(savedKey);
+        this.isConfigured.set(true);
+      }
+    }
+
+    // Auto-scroll effect
+    effect(() => {
+      if (this.messages().length > 0) {
+        setTimeout(() => this.scrollToBottom(), 100);
+      }
+    });
+
+    // Add welcome message
+    this.addMessage({
+      id: this.generateId(),
+      role: 'assistant',
+      content: 'Hi! I\'m your AI assistant. I can help you understand and interact with this Angular application. What would you like to know?',
+      timestamp: Date.now()
+    });
+  }
+
+  /**
+   * Toggle chat panel
+   */
+  toggle(): void {
+    this.isOpen.update(open => !open);
+  }
+
+  /**
+   * Open chat panel
+   */
+  open(): void {
+    this.isOpen.set(true);
+  }
+
+  /**
+   * Close chat panel
+   */
+  close(): void {
+    this.isOpen.set(false);
+  }
+
+  /**
+   * Save API key
+   */
+  saveApiKey(): void {
+    if (!this.isBrowser) return;
+
+    const key = this.apiKey().trim();
+    if (key) {
+      localStorage.setItem('gemini-api-key', key);
+      this.geminiService.setApiKey(key);
+      this.isConfigured.set(true);
+      this.errorMessage.set('');
+    }
+  }
+
+  /**
+   * Clear API key
+   */
+  clearApiKey(): void {
+    if (!this.isBrowser) return;
+
+    localStorage.removeItem('gemini-api-key');
+    this.apiKey.set('');
+    this.geminiService.setApiKey('');
+    this.isConfigured.set(false);
+  }
+
+  /**
+   * Send message to AI
+   */
+  async sendMessage(message?: string): Promise<void> {
+    const text = message || this.userInput().trim();
+    if (!text) return;
+
+    if (!this.isConfigured()) {
+      this.errorMessage.set('Please configure your Gemini API key first');
+      return;
+    }
+
+    // Add user message
+    this.addMessage({
+      id: this.generateId(),
+      role: 'user',
+      content: text,
+      timestamp: Date.now()
+    });
+
+    // Clear input
+    this.userInput.set('');
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    try {
+      // Get AI response
+      const response = await this.geminiService.sendMessage(text, this.messages());
+
+      // Add AI message
+      this.addMessage({
+        id: this.generateId(),
+        role: 'assistant',
+        content: response.message,
+        timestamp: Date.now(),
+        action: response.action
+      });
+
+      // Execute action if present
+      if (response.action) {
+        await this.executeAction(response.action);
+      }
+    } catch (error: any) {
+      this.errorMessage.set(error.message || 'Failed to get AI response');
+      this.addMessage({
+        id: this.generateId(),
+        role: 'assistant',
+        content: `I'm sorry, I encountered an error: ${error.message}. Please check your API key and try again.`,
+        timestamp: Date.now()
+      });
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Execute AI action
+   */
+  private async executeAction(action: any): Promise<void> {
+    try {
+      const result = await this.runtimeMod.executeAction(action);
+      console.log('Action executed:', result);
+    } catch (error) {
+      console.error('Error executing action:', error);
+    }
+  }
+
+  /**
+   * Add message to chat
+   */
+  private addMessage(message: ChatMessage): void {
+    this.messages.update(msgs => [...msgs, message]);
+  }
+
+  /**
+   * Scroll to bottom of messages
+   */
+  private scrollToBottom(): void {
+    const container = this.messagesContainer();
+    if (container) {
+      const element = container.nativeElement;
+      element.scrollTop = element.scrollHeight;
+    }
+  }
+
+  /**
+   * Generate unique message ID
+   */
+  private generateId(): string {
+    return `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Handle enter key in input
+   */
+  onKeyPress(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  /**
+   * Clear chat history
+   */
+  clearChat(): void {
+    this.messages.set([{
+      id: this.generateId(),
+      role: 'assistant',
+      content: 'Chat cleared. How can I help you?',
+      timestamp: Date.now()
+    }]);
+  }
+
+  /**
+   * Get inspector state
+   */
+  get inspectorActive(): boolean {
+    return this.inspector.inspecting();
+  }
+}

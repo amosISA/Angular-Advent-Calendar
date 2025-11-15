@@ -1,0 +1,164 @@
+<div class="chat-container" [class.open]="isOpen()">
+  <!-- Chat Header -->
+  <div class="chat-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" opacity="0.9"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h3>AI Assistant</h3>
+        <p>Angular Runtime Expert</p>
+      </div>
+    </div>
+    <button class="close-btn" (click)="close()" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- API Key Configuration -->
+  @if (!isConfigured()) {
+    <div class="api-config">
+      <h4>Configure Gemini API</h4>
+      <p>Enter your Gemini API key to start chatting</p>
+      <div class="input-group">
+        <input
+          type="password"
+          [(ngModel)]="apiKey"
+          placeholder="Enter Gemini API key..."
+          (keypress.enter)="saveApiKey()"
+        />
+        <button (click)="saveApiKey()">Save</button>
+      </div>
+      <a
+        href="https://aistudio.google.com/app/apikey"
+        target="_blank"
+        class="get-key-link"
+      >
+        Get API Key →
+      </a>
+    </div>
+  }
+
+  <!-- Chat Messages -->
+  @if (isConfigured()) {
+    <div class="chat-messages" #messagesContainer>
+      @for (message of messages(); track message.id) {
+        <div class="message" [class.user]="message.role === 'user'" [class.assistant]="message.role === 'assistant'">
+          <div class="message-avatar">
+            @if (message.role === 'user') {
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" opacity="0.9"/>
+                <path d="M2 17L12 22L22 17M2 12L12 17L22 12"/>
+              </svg>
+            }
+          </div>
+          <div class="message-content">
+            <div class="message-text">{{ message.content }}</div>
+            @if (message.action && message.action.type !== 'NONE') {
+              <div class="action-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Action: {{ message.action.type }}
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (isLoading()) {
+        <div class="message assistant">
+          <div class="message-avatar">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" opacity="0.9"/>
+              <path d="M2 17L12 22L22 17M2 12L12 17L22 12"/>
+            </svg>
+          </div>
+          <div class="message-content">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Suggested Questions -->
+    @if (messages().length <= 1 && !isLoading()) {
+      <div class="suggested-questions">
+        <p>Try asking:</p>
+        <div class="suggestions">
+          @for (question of suggestedQuestions; track question) {
+            <button class="suggestion-btn" (click)="sendMessage(question)">
+              {{ question }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Error Message -->
+    @if (errorMessage()) {
+      <div class="error-message">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <!-- Chat Input -->
+    <div class="chat-input">
+      <div class="input-actions">
+        @if (inspectorActive) {
+          <span class="inspector-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Inspector Active
+          </span>
+        }
+        <button class="action-btn" (click)="clearChat()" title="Clear chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+        <button class="action-btn" (click)="clearApiKey()" title="Change API key">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-wrapper">
+        <textarea
+          [(ngModel)]="userInput"
+          (keypress)="onKeyPress($event)"
+          placeholder="Ask about components, request changes, or enable inspector..."
+          rows="1"
+          [disabled]="isLoading()"
+        ></textarea>
+        <button
+          class="send-btn"
+          (click)="sendMessage()"
+          [disabled]="!userInput().trim() || isLoading()"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+</div>
