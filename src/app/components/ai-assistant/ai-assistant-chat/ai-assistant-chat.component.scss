@@ -190,10 +190,12 @@
 
 // Model Info (when configured)
 .model-info {
-  padding: 16px 20px;
+  padding: 12px 20px;
   background: rgba(102, 126, 234, 0.05);
   border-bottom: 1px solid rgba(102, 126, 234, 0.1);
   flex-shrink: 0;
+  max-height: 80px;
+  overflow: visible;
 
   .model-dropdown {
     display: flex;
@@ -202,17 +204,17 @@
 
     label {
       color: #333;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       white-space: nowrap;
     }
 
     select {
       flex: 1;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border: 2px solid #e0e0e0;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       background: white;
       cursor: pointer;
       transition: all 0.2s;
@@ -229,12 +231,12 @@
   }
 
   .model-notification {
-    margin-top: 8px;
-    padding: 8px 12px;
+    margin-top: 6px;
+    padding: 6px 10px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     text-align: center;
     animation: slideInDown 0.3s ease, fadeOut 0.3s ease 2.7s;
@@ -245,10 +247,12 @@
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0; // Fix flex overflow
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -378,11 +382,14 @@
 
 // Suggested Questions
 .suggested-questions {
-  padding: 0 20px 16px;
+  padding: 0 20px 12px;
+  flex-shrink: 0;
+  max-height: 200px;
+  overflow-y: auto;
 
   p {
-    margin: 0 0 12px 0;
-    font-size: 13px;
+    margin: 0 0 10px 0;
+    font-size: 12px;
     color: #666;
     font-weight: 500;
   }
@@ -390,15 +397,15 @@
   .suggestions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .suggestion-btn {
     background: white;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
+    padding: 8px 12px;
+    font-size: 12px;
     color: #333;
     cursor: pointer;
     transition: all 0.2s;
@@ -434,16 +441,17 @@
 
 // Chat Input
 .chat-input {
-  padding: 16px 20px;
+  padding: 12px 20px;
   background: white;
   border-top: 1px solid #e0e0e0;
   flex-shrink: 0;
+  max-height: 120px;
 
   .input-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 
     .inspector-badge {
       flex: 1;

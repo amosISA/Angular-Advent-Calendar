@@ -405,27 +405,59 @@ ${message}
 
     const data = await response.json();
 
+    console.log('Full Gemini API response:', JSON.stringify(data, null, 2));
+
     // Check for blocked content or safety issues
     if (!data.candidates || data.candidates.length === 0) {
       console.error('Gemini API response:', data);
+
+      // Check for specific error in promptFeedback
+      if (data.promptFeedback) {
+        console.error('Prompt feedback:', data.promptFeedback);
+        if (data.promptFeedback.blockReason) {
+          throw new Error(`Content blocked: ${data.promptFeedback.blockReason}. Try a simpler request.`);
+        }
+      }
+
       throw new Error('No response from Gemini API. The content might have been blocked by safety filters.');
     }
 
     const candidate = data.candidates[0];
+    console.log('Candidate:', JSON.stringify(candidate, null, 2));
 
     // Check if content was blocked
-    if (candidate.finishReason === 'SAFETY' || !candidate.content) {
+    if (candidate.finishReason === 'SAFETY') {
       console.error('Content blocked by safety filters:', candidate);
-      throw new Error('Response blocked by safety filters. Try rephrasing your request.');
+      throw new Error('Response blocked by safety filters. Try a simpler request.');
+    }
+
+    // Check for other finish reasons
+    if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+      console.warn('Unusual finish reason:', candidate.finishReason);
+    }
+
+    // Check if content exists
+    if (!candidate.content) {
+      console.error('No content in candidate:', candidate);
+      throw new Error('No content in response. Try rephrasing your request.');
     }
 
     // Check if content and parts exist
     if (!candidate.content.parts || candidate.content.parts.length === 0) {
       console.error('No content parts in response:', candidate);
-      throw new Error('Invalid response format from Gemini API');
+      throw new Error('Invalid response format from Gemini API. The response had no text content.');
     }
 
-    return candidate.content.parts[0].text;
+    // Check if text exists in first part
+    if (!candidate.content.parts[0].text) {
+      console.error('No text in first part:', candidate.content.parts[0]);
+      throw new Error('Response contained no text. Try a different request.');
+    }
+
+    const text = candidate.content.parts[0].text;
+    console.log('Extracted text:', text.substring(0, 200) + '...');
+
+    return text;
   }
 
   /**
