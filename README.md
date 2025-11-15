@@ -54,7 +54,20 @@ The development server will start at `http://localhost:4200/`. The application w
 
 ### 🌐 GitHub Pages Deployment
 
-This app is configured for GitHub Pages deployment:
+This app features **automated deployment** to GitHub Pages via GitHub Actions!
+
+#### Automatic Deployment
+
+Simply push to any `claude/**` branch and the deployment workflow will automatically:
+1. Build the Angular app for GitHub Pages
+2. Deploy to GitHub Pages
+3. Make your site live at `https://[your-username].github.io/Angular-Advent-Calendar/`
+
+The workflow runs on every push to `claude/**` branches and can also be triggered manually.
+
+#### Manual Deployment (Alternative)
+
+If you prefer manual deployment:
 
 1. **Build for GitHub Pages:**
    ```bash
@@ -71,12 +84,7 @@ This app is configured for GitHub Pages deployment:
 3. **Configure GitHub Pages:**
    - Go to your repository settings on GitHub
    - Navigate to Pages section
-   - Set Source to: Deploy from a branch
-   - Select branch: `claude/angular-advent-calendar-ssr-011CUxsF9qw39KwfY6UJFguL`
-   - Select folder: `/docs`
-   - Click Save
-
-The app will be available at: `https://[your-username].github.io/Angular-Advent-Calendar/`
+   - Set Source to: GitHub Actions
 
 **Note:** The GitHub Pages build uses static hosting (no SSR). For full SSR functionality, deploy to a Node.js hosting platform.
 
