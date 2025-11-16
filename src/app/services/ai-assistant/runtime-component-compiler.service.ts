@@ -69,57 +69,51 @@ export class RuntimeComponentCompilerService {
    * Create a component class from code
    */
   createComponentClass(componentCode: ComponentCode): Type<any> {
-    // Parse TypeScript code if provided
-    let componentLogic: any = {};
-
-    if (componentCode.typescript) {
-      try {
-        // Create a function that returns the component logic
-        // We need to ensure signal and inject are available in the execution context
-        const func = new Function('signal', 'inject', `
-          ${componentCode.typescript}
-          return componentLogic;
-        `);
-
-        // Execute the function with Angular's signal and inject
-        componentLogic = func(signal, inject);
-      } catch (error) {
-        console.warn('TypeScript parsing error, using empty logic:', error);
-        console.error('TypeScript code:', componentCode.typescript);
-      }
-    }
+    // Store TypeScript code to execute in each instance's constructor
+    // This ensures each component instance gets its own signals and methods
+    const typescriptCode = componentCode.typescript || '';
 
     // Create component class dynamically
     class DynamicComponent {
       constructor() {
-        console.log('[RuntimeCompiler] Creating component, componentLogic keys:', Object.keys(componentLogic));
+        // Execute TypeScript code to create component logic for THIS instance
+        // This is critical: signals must be created fresh for each instance!
+        if (typescriptCode) {
+          try {
+            const func = new Function('signal', 'inject', `
+              ${typescriptCode}
+              return componentLogic;
+            `);
 
-        // First pass: assign all non-function properties (including signals)
-        Object.keys(componentLogic).forEach(key => {
-          const value = componentLogic[key];
+            // Execute and get fresh componentLogic for this instance
+            const componentLogic = func(signal, inject);
 
-          // Check if it's a signal by checking if it has update/set methods
-          if (typeof value === 'function' && value.set && value.update) {
-            console.log(`[RuntimeCompiler] Assigning signal: ${key}`);
-            (this as any)[key] = value;
-          } else if (typeof value !== 'function') {
-            console.log(`[RuntimeCompiler] Assigning property: ${key}`, value);
-            (this as any)[key] = value;
+            console.log('[RuntimeCompiler] Creating instance with logic keys:', Object.keys(componentLogic));
+
+            // Assign all properties and methods to this instance
+            Object.keys(componentLogic).forEach(key => {
+              const value = componentLogic[key];
+
+              // Check if it's a signal by checking if it has update/set methods
+              if (typeof value === 'function' && value.set && value.update) {
+                console.log(`[RuntimeCompiler] ✓ Assigning signal: ${key}`);
+                (this as any)[key] = value;
+              } else if (typeof value === 'function') {
+                console.log(`[RuntimeCompiler] ✓ Binding method: ${key}`);
+                // Bind the method to this component instance
+                (this as any)[key] = value.bind(this);
+              } else {
+                console.log(`[RuntimeCompiler] ✓ Assigning property: ${key}`, value);
+                (this as any)[key] = value;
+              }
+            });
+
+            console.log('[RuntimeCompiler] ✅ Component instance ready with:', Object.keys(this));
+          } catch (error) {
+            console.error('[RuntimeCompiler] ❌ Error creating component logic:', error);
+            console.error('TypeScript code:', typescriptCode);
           }
-        });
-
-        // Second pass: bind all methods (after properties are set)
-        Object.keys(componentLogic).forEach(key => {
-          const value = componentLogic[key];
-
-          if (typeof value === 'function' && !value.set && !value.update) {
-            console.log(`[RuntimeCompiler] Binding method: ${key}`);
-            // Bind the method to this component instance
-            (this as any)[key] = value.bind(this);
-          }
-        });
-
-        console.log('[RuntimeCompiler] Component instance created with:', Object.keys(this));
+        }
       }
     }
 

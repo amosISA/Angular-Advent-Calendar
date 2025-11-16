@@ -18,6 +18,9 @@ interface Door {
   styleUrl: './advent-calendar.component.scss'
 })
 export class AdventCalendarComponent {
+  // App version - update this with each deploy
+  protected readonly appVersion = '1.0.0';
+
   private readonly currentDate = new Date();
   protected readonly currentDay = signal(this.currentDate.getDate());
   protected readonly currentMonth = signal(this.currentDate.getMonth() + 1);

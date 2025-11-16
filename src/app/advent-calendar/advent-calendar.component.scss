@@ -353,3 +353,20 @@
   left: 75%;
   animation-delay: 5s;
 }
+
+// App Version Display
+.app-version {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
