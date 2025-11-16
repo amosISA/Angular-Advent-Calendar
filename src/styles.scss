@@ -87,3 +87,22 @@ html {
     background-position: 1000px 0;
   }
 }
+
+/* Global Dark Mode Styles */
+body.dark-mode {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #e0e0e0;
+
+  /* Update scrollbar for dark mode */
+  ::-webkit-scrollbar-track {
+    background: #0f1419;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  }
+}

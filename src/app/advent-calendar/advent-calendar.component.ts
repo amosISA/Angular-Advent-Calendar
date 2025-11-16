@@ -19,7 +19,7 @@ interface Door {
 })
 export class AdventCalendarComponent {
   // App version - update this with each deploy
-  protected readonly appVersion = '1.0.0';
+  protected readonly appVersion = '2.0.0';
 
   private readonly currentDate = new Date();
   protected readonly currentDay = signal(this.currentDate.getDate());

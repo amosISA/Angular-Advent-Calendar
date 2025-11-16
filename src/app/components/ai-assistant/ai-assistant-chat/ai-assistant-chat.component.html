@@ -93,7 +93,7 @@
           </div>
           <div class="message-content">
             <div class="message-text">
-              @if (message.action && message.action.type === 'CREATE_COMPONENT') {
+              @if (message.action && (message.action.type === 'CREATE_COMPONENT' || message.action.type === 'CREATE_FILE_COMPONENT')) {
                 🎨 Creating your component...
               } @else {
                 {{ message.content }}

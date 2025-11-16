@@ -195,6 +195,150 @@ app.post('/api/commands/execute', async (req, res) => {
 });
 
 /**
+ * Create Angular component files and update parent component
+ */
+app.post('/api/component/create', async (req, res) => {
+  try {
+    const { componentName, componentPath, files, insertInto } = req.body;
+
+    if (!componentName || !componentPath || !files) {
+      return res.status(400).json({
+        success: false,
+        error: 'componentName, componentPath, and files are required'
+      });
+    }
+
+    // Security: Ensure paths are within src/
+    const srcPath = path.join(__dirname, 'src');
+    const fullComponentPath = path.join(__dirname, componentPath);
+
+    if (!fullComponentPath.startsWith(srcPath)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Component path must be within src/ directory'
+      });
+    }
+
+    console.log(`\n📦 Creating component: ${componentName}`);
+    console.log(`📂 Location: ${componentPath}`);
+
+    // Create component directory
+    await fs.mkdir(fullComponentPath, { recursive: true });
+
+    const createdFiles = [];
+
+    // Write component files
+    if (files.ts) {
+      const tsPath = path.join(fullComponentPath, `${componentName}.component.ts`);
+      await fs.writeFile(tsPath, files.ts, 'utf-8');
+      createdFiles.push(tsPath);
+      console.log(`✓ Created: ${componentName}.component.ts`);
+    }
+
+    if (files.html) {
+      const htmlPath = path.join(fullComponentPath, `${componentName}.component.html`);
+      await fs.writeFile(htmlPath, files.html, 'utf-8');
+      createdFiles.push(htmlPath);
+      console.log(`✓ Created: ${componentName}.component.html`);
+    }
+
+    if (files.scss) {
+      const scssPath = path.join(fullComponentPath, `${componentName}.component.scss`);
+      await fs.writeFile(scssPath, files.scss, 'utf-8');
+      createdFiles.push(scssPath);
+      console.log(`✓ Created: ${componentName}.component.scss`);
+    }
+
+    // Update parent component if insertInto is provided
+    if (insertInto) {
+      const { componentFilePath, importStatement, templatePath, templateInsert } = insertInto;
+
+      // Update component TypeScript file with import
+      if (componentFilePath && importStatement) {
+        const fullComponentFilePath = path.join(__dirname, componentFilePath);
+
+        if (fullComponentFilePath.startsWith(srcPath)) {
+          const componentContent = await fs.readFile(fullComponentFilePath, 'utf-8');
+
+          // Find the last import statement
+          const lines = componentContent.split('\n');
+          let lastImportIndex = -1;
+
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].trim().startsWith('import ')) {
+              lastImportIndex = i;
+            }
+          }
+
+          // Insert new import after last import
+          if (lastImportIndex >= 0) {
+            lines.splice(lastImportIndex + 1, 0, importStatement);
+
+            // Also update imports array in @Component decorator
+            const updatedContent = lines.join('\n');
+            const importsArrayMatch = updatedContent.match(/imports:\s*\[([\s\S]*?)\]/);
+
+            if (importsArrayMatch) {
+              const currentImports = importsArrayMatch[1].trim();
+              const componentClassName = importStatement.match(/import\s+{\s*(\w+)/)?.[1];
+
+              if (componentClassName && !currentImports.includes(componentClassName)) {
+                const newImports = currentImports
+                  ? `${currentImports}, ${componentClassName}`
+                  : componentClassName;
+                const newContent = updatedContent.replace(
+                  /imports:\s*\[([\s\S]*?)\]/,
+                  `imports: [${newImports}]`
+                );
+
+                await fs.writeFile(fullComponentFilePath, newContent, 'utf-8');
+                console.log(`✓ Updated imports in: ${componentFilePath}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Update template file
+      if (templatePath && templateInsert) {
+        const fullTemplatePath = path.join(__dirname, templatePath);
+
+        if (fullTemplatePath.startsWith(srcPath)) {
+          let templateContent = await fs.readFile(fullTemplatePath, 'utf-8');
+          const { position, content } = templateInsert;
+
+          if (position === 'start') {
+            templateContent = content + '\n' + templateContent;
+          } else if (position === 'end') {
+            templateContent = templateContent + '\n' + content;
+          } else if (position.before) {
+            templateContent = templateContent.replace(position.before, content + '\n' + position.before);
+          } else if (position.after) {
+            templateContent = templateContent.replace(position.after, position.after + '\n' + content);
+          }
+
+          await fs.writeFile(fullTemplatePath, templateContent, 'utf-8');
+          console.log(`✓ Updated template: ${templatePath}`);
+        }
+      }
+    }
+
+    console.log(`✅ Component ${componentName} created successfully!\n`);
+
+    res.json({
+      success: true,
+      message: `Component ${componentName} created successfully`,
+      files: createdFiles,
+      componentPath
+    });
+
+  } catch (error) {
+    console.error(`❌ Error creating component:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * Get file stats
  */
 app.post('/api/files/stats', async (req, res) => {
@@ -273,5 +417,6 @@ app.listen(PORT, () => {
   console.log(`  POST /api/files/list - List directory contents`);
   console.log(`  POST /api/files/stats - Get file stats`);
   console.log(`  POST /api/commands/execute - Execute command`);
+  console.log(`  POST /api/component/create - Create Angular component`);
   console.log(`\n⚡ Run 'npm start' in another terminal to start Angular dev server`);
 });

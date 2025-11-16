@@ -249,6 +249,28 @@ export class AIAssistantChatComponent {
     try {
       // Add a status message based on action type
       let statusMessage = '';
+
+      // Handle file-based component creation separately
+      if (action.type === 'CREATE_FILE_COMPONENT') {
+        statusMessage = '📝 Writing component files to disk...';
+        this.addMessage({
+          id: this.generateId(),
+          role: 'assistant',
+          content: statusMessage,
+          timestamp: Date.now()
+        });
+
+        await this.createFileBasedComponent(action.payload);
+
+        this.addMessage({
+          id: this.generateId(),
+          role: 'assistant',
+          content: '✅ Component created successfully! The dev server is rebuilding... Your component will appear shortly.',
+          timestamp: Date.now()
+        });
+        return;
+      }
+
       switch (action.type) {
         case 'CREATE_COMPONENT':
           statusMessage = '✨ Component created and added to the page!';
@@ -287,6 +309,42 @@ export class AIAssistantChatComponent {
         content: `⚠️ Action failed: ${error}`,
         timestamp: Date.now()
       });
+    }
+  }
+
+  /**
+   * Create file-based component by calling dev server API
+   */
+  private async createFileBasedComponent(payload: any): Promise<void> {
+    const DEV_SERVER_URL = 'http://localhost:4201';
+
+    try {
+      console.log('[FileBasedComponent] Creating component:', payload.componentName);
+
+      const response = await fetch(`${DEV_SERVER_URL}/api/component/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          componentName: payload.componentName,
+          componentPath: payload.componentPath,
+          files: payload.files,
+          insertInto: payload.insertInto
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create component files');
+      }
+
+      console.log('[FileBasedComponent] ✅ Component created successfully:', result);
+
+    } catch (error: any) {
+      console.error('[FileBasedComponent] ❌ Error:', error);
+      throw new Error(`Failed to create component: ${error.message}`);
     }
   }
 
@@ -401,6 +459,7 @@ export class AIAssistantChatComponent {
   protected getActionLabel(actionType: string): string {
     const labels: Record<string, string> = {
       'CREATE_COMPONENT': 'Component Creation',
+      'CREATE_FILE_COMPONENT': 'File-Based Component',
       'HIGHLIGHT_COMPONENTS': 'Highlight',
       'INSPECT_ELEMENT': 'Inspector',
       'MODIFY_PROPERTY': 'Property Change',

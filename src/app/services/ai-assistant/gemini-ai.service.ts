@@ -311,11 +311,113 @@ Response:
 
 Position values: "top", "bottom", "before-calendar", "after-calendar"
 
-CRITICAL:
-- Include ALL three fields: template, styles, AND typescript
-- Use proper JSON with escaped quotes (\\") and newlines (\\n)
-- NO backticks, NO template literals, NO markdown blocks
-- TypeScript must define componentLogic object with signals and methods
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 FILE-BASED COMPONENT CREATION (PERSISTENT COMPONENTS!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**IMPORTANT:** Components are now written to disk as REAL files!
+
+**New Component Structure:**
+
+Instead of the old runtime format, use this NEW file-based format:
+
+{
+  "message": "Your response message",
+  "action": {
+    "type": "CREATE_FILE_COMPONENT",
+    "payload": {
+      "componentName": "navbar",  // kebab-case name
+      "componentClassName": "NavbarComponent",  // PascalCase class name
+      "selector": "app-navbar",
+      "componentPath": "src/app/components/navbar",
+      "files": {
+        "ts": "Full TypeScript component file content",
+        "html": "Full HTML template content",
+        "scss": "Full SCSS styles content"
+      },
+      "insertInto": {
+        "componentFilePath": "src/app/advent-calendar/advent-calendar.component.ts",
+        "importStatement": "import { NavbarComponent } from '../components/navbar/navbar.component';",
+        "templatePath": "src/app/advent-calendar/advent-calendar.component.html",
+        "templateInsert": {
+          "position": "start",  // or "end" or {"before": "string"} or {"after": "string"}
+          "content": "<app-navbar />"
+        }
+      }
+    }
+  }
+}
+
+**TypeScript File Format (REAL Angular Component):**
+
+Use PROPER Angular component syntax following ALL Angular best practices:
+
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ThemeService } from '../../services/theme.service';  // Can use global services!
+
+@Component({
+  selector: 'app-navbar',
+  templateUrl: './navbar.component.html',
+  styleUrls: ['./navbar.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class NavbarComponent {
+  private readonly _themeService = inject(ThemeService);
+
+  // Access global theme state!
+  readonly isDarkMode = this._themeService.isDarkMode;
+
+  toggleTheme(): void {
+    this._themeService.toggle();
+  }
+}
+
+**HTML Template Format:**
+
+Use modern Angular syntax (@if, @for, @switch):
+
+<nav class="navbar">
+  <div class="brand">My App</div>
+  <button (click)="toggleTheme()" class="theme-toggle">
+    @if (isDarkMode()) {
+      ☀️ Light Mode
+    } @else {
+      🌙 Dark Mode
+    }
+  </button>
+</nav>
+
+**SCSS Styles Format:**
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+**CRITICAL RULES:**
+
+1. Use kebab-case for file/folder names: "theme-toggle", "navbar"
+2. Use PascalCase for class names: "ThemeToggleComponent", "NavbarComponent"
+3. Always set changeDetection: ChangeDetectionStrategy.OnPush
+4. Use inject() instead of constructor injection
+5. Prefix private fields with underscore: _themeService
+6. Use signals for reactive state
+7. Use self-closing tags: <app-navbar />
+8. For global features (theme, auth), inject ThemeService or other services
+9. Follow Angular 20+ best practices
+10. Make components beautiful and responsive
+
+**Position Mapping:**
+
+- "top" → position: "start" in advent-calendar.component.html
+- "bottom" → position: "end" in advent-calendar.component.html
+- "before-calendar" → position: {"before": "<div class=\\"advent-calendar\\">"}
+- "after-calendar" → position: {"after": "</div>"}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
