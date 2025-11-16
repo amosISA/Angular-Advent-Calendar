@@ -188,58 +188,75 @@ export class RuntimeModificationService {
       // Create the component class using the compiler service
       const componentClass = this.compiler.createComponentClass(componentCode);
 
-      // Create a host element for the component
-      const hostElement = document.createElement('div');
-      hostElement.id = `ai-component-${Date.now()}`;
-      hostElement.style.cssText = 'width: 100%; display: block;';
+      // Create the Angular component instance (Angular creates the element with proper selector)
+      const componentRef = createComponent(componentClass, {
+        environmentInjector: this.environmentInjector
+      });
 
-      // Determine insertion position
+      // Get the component's native element (will have the proper selector tag)
+      const componentElement = componentRef.location.nativeElement;
+
+      // Attach to Angular's change detection
+      this.appRef.attachView(componentRef.hostView);
+
+      // Find app-root element
+      const appRoot = document.querySelector('app-root') as HTMLElement;
+      if (!appRoot) {
+        componentRef.destroy();
+        return { success: false, message: 'Could not find app-root element' };
+      }
+
+      // Determine insertion position within app-root
       let targetElement: HTMLElement | null = null;
       let insertBefore = false;
 
       switch (position) {
         case 'top':
-          targetElement = document.body;
+          // Insert at the beginning of app-root
+          targetElement = appRoot as HTMLElement;
           insertBefore = true;
           break;
         case 'bottom':
-          targetElement = document.body;
+          // Insert at the end of app-root
+          targetElement = appRoot as HTMLElement;
           insertBefore = false;
           break;
         case 'before-calendar':
-          targetElement = document.querySelector('app-advent-calendar') as HTMLElement;
+          targetElement = appRoot.querySelector('app-advent-calendar') as HTMLElement;
           insertBefore = true;
           break;
         case 'after-calendar':
-          targetElement = document.querySelector('app-advent-calendar') as HTMLElement;
+          targetElement = appRoot.querySelector('app-advent-calendar') as HTMLElement;
           insertBefore = false;
           break;
         default:
-          targetElement = document.body;
+          targetElement = appRoot as HTMLElement;
           insertBefore = false;
       }
 
       if (!targetElement) {
+        componentRef.destroy();
         return { success: false, message: 'Could not find target element for insertion' };
       }
 
-      // Insert host element at specified position
-      if (insertBefore && targetElement.parentNode) {
-        targetElement.parentNode.insertBefore(hostElement, targetElement);
-      } else if (insertBefore && position === 'top') {
-        document.body.insertBefore(hostElement, document.body.firstChild);
+      // Insert component element at specified position
+      if (insertBefore && targetElement === appRoot) {
+        // Insert at beginning of app-root
+        appRoot.insertBefore(componentElement, appRoot.firstChild);
+      } else if (insertBefore && targetElement.parentNode) {
+        // Insert before specific element
+        targetElement.parentNode.insertBefore(componentElement, targetElement);
+      } else if (targetElement === appRoot) {
+        // Append to end of app-root
+        appRoot.appendChild(componentElement);
       } else {
-        targetElement.appendChild(hostElement);
+        // Insert after specific element
+        if (targetElement.nextSibling) {
+          targetElement.parentNode?.insertBefore(componentElement, targetElement.nextSibling);
+        } else {
+          targetElement.parentNode?.appendChild(componentElement);
+        }
       }
-
-      // Create the Angular component instance
-      const componentRef = createComponent(componentClass, {
-        environmentInjector: this.environmentInjector,
-        hostElement: hostElement
-      });
-
-      // Attach to Angular's change detection
-      this.appRef.attachView(componentRef.hostView);
 
       // Store reference for cleanup
       this.compiler.createdComponents.update((map: Map<string, any>) => {
@@ -252,7 +269,7 @@ export class RuntimeModificationService {
                           position === 'bottom' ? 'at the bottom' :
                           position === 'before-calendar' ? 'before the calendar' :
                           position === 'after-calendar' ? 'after the calendar' :
-                          'on the page';
+                          'in the app';
 
       return {
         success: true,
