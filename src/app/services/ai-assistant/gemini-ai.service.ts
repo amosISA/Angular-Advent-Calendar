@@ -339,8 +339,12 @@ Now respond to user queries with your FULL Angular expertise!`;
    * Build full prompt with conversation history
    */
   private buildFullPrompt(message: string, history: ChatMessage[], systemPrompt: string): string {
-    const historyText = history
+    // Limit conversation history to last 10 messages to prevent token overflow
+    const recentHistory = history
       .filter(msg => msg.role !== 'system')
+      .slice(-10);
+
+    const historyText = recentHistory
       .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n\n');
 
@@ -368,7 +372,7 @@ ${message}
         temperature: 0.7,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
       },
       safetySettings: [
         {
@@ -431,8 +435,19 @@ ${message}
       throw new Error('Response blocked by safety filters. Try a simpler request.');
     }
 
+    // Check for MAX_TOKENS finish reason
+    if (candidate.finishReason === 'MAX_TOKENS') {
+      console.error('Response truncated due to MAX_TOKENS limit');
+      // Still try to use partial content if available
+      if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0 && candidate.content.parts[0].text) {
+        console.warn('Using partial response from MAX_TOKENS');
+      } else {
+        throw new Error('Response was truncated (MAX_TOKENS). Please try a simpler request or reduce conversation history.');
+      }
+    }
+
     // Check for other finish reasons
-    if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+    if (candidate.finishReason && candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
       console.warn('Unusual finish reason:', candidate.finishReason);
     }
 
