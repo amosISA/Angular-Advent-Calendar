@@ -107,18 +107,23 @@ export class AIAssistantChatComponent {
     effect(() => {
       const selected = this.inspector.selectedElement();
       if (selected && selected.component) {
-        // Add component to context if not already present
-        this.addComponentToContext(selected);
+        // Check if already in context before adding
+        const exists = this.selectedComponents().find(
+          c => c.component?.selector === selected.component?.selector
+        );
+
+        // Only add if not already present
+        if (!exists) {
+          this.addComponentToContext(selected);
+        }
       }
     });
 
     // Watch for component context changes and scroll to bottom
     effect(() => {
       const components = this.selectedComponents();
-      if (components.length > 0) {
-        // Scroll after component chips are rendered
-        setTimeout(() => this.scrollToBottom(), 100);
-      }
+      // Scroll whenever the list changes (add or remove)
+      setTimeout(() => this.scrollToBottom(), 100);
     });
 
     // Add welcome message
@@ -411,28 +416,26 @@ export class AIAssistantChatComponent {
   addComponentToContext(elementInfo: ElementInfo): void {
     if (!elementInfo.component) return;
 
-    // Check if already in context
-    const existing = this.selectedComponents().find(
-      c => c.component?.selector === elementInfo.component?.selector
-    );
+    // Add to components list
+    this.selectedComponents.update(components => [...components, elementInfo]);
 
-    if (!existing) {
-      this.selectedComponents.update(components => [...components, elementInfo]);
-
-      // Add notification message
-      this.addMessage({
-        id: this.generateId(),
-        role: 'assistant',
-        content: `✨ Added <${elementInfo.component.selector}> to context. You can now ask me questions about this component!`,
-        timestamp: Date.now()
-      });
-    }
+    // Add notification message
+    this.addMessage({
+      id: this.generateId(),
+      role: 'assistant',
+      content: `✨ Added <${elementInfo.component.selector}> to context. You can now ask me questions about this component!`,
+      timestamp: Date.now()
+    });
   }
 
   /**
    * Remove component from context
    */
   removeComponentFromContext(index: number): void {
+    // Clear the inspector selection to prevent re-adding
+    this.inspector.clearSelection();
+
+    // Remove from list
     this.selectedComponents.update(components =>
       components.filter((_, i) => i !== index)
     );
@@ -442,6 +445,10 @@ export class AIAssistantChatComponent {
    * Clear all component context
    */
   clearComponentContext(): void {
+    // Clear the inspector selection to prevent re-adding
+    this.inspector.clearSelection();
+
+    // Clear all components
     this.selectedComponents.set([]);
   }
 

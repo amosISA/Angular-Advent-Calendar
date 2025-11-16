@@ -58,6 +58,13 @@ export class ComponentInspectorService {
   }
 
   /**
+   * Clear selected element
+   */
+  clearSelection(): void {
+    this.selectedElement.set(null);
+  }
+
+  /**
    * Highlight components by selectors
    */
   highlightComponents(selectors: string[], duration: number = 0): void {
