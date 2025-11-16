@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { GeminiAIService } from '../../../services/ai-assistant/gemini-ai.service';
 import { RuntimeModificationService } from '../../../services/ai-assistant/runtime-modification.service';
 import { ComponentInspectorService } from '../../../services/ai-assistant/component-inspector.service';
-import { ChatMessage } from '../../../services/ai-assistant/models';
+import { ChatMessage, ElementInfo } from '../../../services/ai-assistant/models';
 
 /**
  * AIAssistantChat Component
@@ -24,6 +24,9 @@ export class AIAssistantChatComponent {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
 
+  // Expose Object.keys to template
+  protected readonly Object = Object;
+
   // Signals
   readonly isOpen = signal<boolean>(false);
   readonly messages = signal<ChatMessage[]>([]);
@@ -34,6 +37,7 @@ export class AIAssistantChatComponent {
   readonly errorMessage = signal<string>('');
   readonly selectedModel = signal<string>('gemini-2.5-flash');
   readonly modelChangeNotification = signal<boolean>(false);
+  readonly selectedComponents = signal<ElementInfo[]>([]);
 
   // Available AI models
   readonly availableModels = [
@@ -96,6 +100,15 @@ export class AIAssistantChatComponent {
     effect(() => {
       if (this.messages().length > 0) {
         setTimeout(() => this.scrollToBottom(), 100);
+      }
+    });
+
+    // Watch for component selections from inspector
+    effect(() => {
+      const selected = this.inspector.selectedElement();
+      if (selected && selected.component) {
+        // Add component to context if not already present
+        this.addComponentToContext(selected);
       }
     });
 
@@ -168,7 +181,11 @@ export class AIAssistantChatComponent {
       return;
     }
 
-    // Add user message
+    // Build message with component context
+    const componentContext = this.buildComponentContext();
+    const fullMessage = text + componentContext;
+
+    // Add user message (show original text only)
     this.addMessage({
       id: this.generateId(),
       role: 'user',
@@ -182,8 +199,8 @@ export class AIAssistantChatComponent {
     this.errorMessage.set('');
 
     try {
-      // Get AI response
-      const response = await this.geminiService.sendMessage(text, this.messages());
+      // Get AI response (send full message with context)
+      const response = await this.geminiService.sendMessage(fullMessage, this.messages());
 
       // Add AI message
       this.addMessage({
@@ -377,5 +394,75 @@ export class AIAssistantChatComponent {
       'LIST_COMPONENTS': 'Component List'
     };
     return labels[actionType] || actionType;
+  }
+
+  /**
+   * Add component to context
+   */
+  addComponentToContext(elementInfo: ElementInfo): void {
+    if (!elementInfo.component) return;
+
+    // Check if already in context
+    const existing = this.selectedComponents().find(
+      c => c.component?.selector === elementInfo.component?.selector
+    );
+
+    if (!existing) {
+      this.selectedComponents.update(components => [...components, elementInfo]);
+
+      // Add notification message
+      this.addMessage({
+        id: this.generateId(),
+        role: 'assistant',
+        content: `✨ Added <${elementInfo.component.selector}> to context. You can now ask me questions about this component!`,
+        timestamp: Date.now()
+      });
+    }
+  }
+
+  /**
+   * Remove component from context
+   */
+  removeComponentFromContext(index: number): void {
+    this.selectedComponents.update(components =>
+      components.filter((_, i) => i !== index)
+    );
+  }
+
+  /**
+   * Clear all component context
+   */
+  clearComponentContext(): void {
+    this.selectedComponents.set([]);
+  }
+
+  /**
+   * Build component context string for AI
+   */
+  private buildComponentContext(): string {
+    const components = this.selectedComponents();
+    if (components.length === 0) return '';
+
+    let context = '\n\n**Selected Components Context:**\n\n';
+
+    components.forEach((comp, index) => {
+      if (!comp.component) return;
+
+      context += `${index + 1}. Component: ${comp.component.name}\n`;
+      context += `   Selector: <${comp.component.selector}>\n`;
+
+      // Add signals/state
+      const signals = comp.component.signals || {};
+      if (Object.keys(signals).length > 0) {
+        context += `   State:\n`;
+        Object.entries(signals).forEach(([name, value]) => {
+          context += `     - ${name}: ${JSON.stringify(value)}\n`;
+        });
+      }
+
+      context += '\n';
+    });
+
+    return context;
   }
 }
