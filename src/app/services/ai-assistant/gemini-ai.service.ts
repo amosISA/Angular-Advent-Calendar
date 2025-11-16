@@ -165,39 +165,26 @@ const componentLogic = {
 };
 
 IMPORTANT:
-- Use `signal(initialValue)` for reactive state
-- Methods can access other properties via `this`
-- Signals are updated with `.update()` or `.set()`
-- Template can use signals with `{{ mySignal() }}`
+- Use signal(initialValue) for reactive state
+- Methods can access other properties via 'this'
+- Signals are updated with .update() or .set()
+- Template can use signals with {{ mySignal() }}
 
 **Angular Template Examples:**
 
-1. **Interpolation & Signals:**
-\`\`\`html
-<h1>{{ title }}</h1>
-<p>Count: {{ count() }}</p>
-\`\`\`
+1. Interpolation & Signals:
+   <h1>{{ title }}</h1>
+   <p>Count: {{ count() }}</p>
 
-2. **Structural Directives (@if, @for):**
-\`\`\`html
-@if (isVisible) {
-  <div>Content</div>
-}
+2. Structural Directives (@if, @for):
+   @if (isVisible) { <div>Content</div> }
+   @for (item of items; track item.id) { <div>{{ item.name }}</div> }
 
-@for (item of items; track item.id) {
-  <div>{{ item.name }}</div>
-}
-\`\`\`
+3. Event & Property Binding:
+   <button (click)="handleClick()" [disabled]="isDisabled">Click</button>
 
-3. **Event & Property Binding:**
-\`\`\`html
-<button (click)="handleClick()" [disabled]="isDisabled">Click</button>
-\`\`\`
-
-4. **Animations & Styles:**
-\`\`\`html
-<div class="animated fadeIn">Content</div>
-\`\`\`
+4. Animations & Styles:
+   <div class="animated fadeIn">Content</div>
 
 **Response Format:**
 
