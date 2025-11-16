@@ -1,5 +1,6 @@
 import { Injectable, Compiler, ViewContainerRef, ComponentRef, Type, inject, createComponent, EnvironmentInjector, signal } from '@angular/core';
 import { Component as ComponentDecorator } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 /**
  * Component code structure
@@ -96,7 +97,8 @@ export class RuntimeComponentCompilerService {
       selector: componentCode.selector,
       template: componentCode.template as string, // Type assertion for runtime
       styles: componentCode.styles ? [componentCode.styles as string] : [],
-      standalone: true
+      standalone: true,
+      imports: [CommonModule] // Include CommonModule for directives like *ngIf, *ngFor
     };
 
     // Use ComponentDecorator at runtime
