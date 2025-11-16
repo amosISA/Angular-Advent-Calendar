@@ -2,6 +2,7 @@ import { Injectable, inject, ApplicationRef, createComponent, EnvironmentInjecto
 import { AngularIntrospectionService } from './angular-introspection.service';
 import { ComponentInspectorService } from './component-inspector.service';
 import { RuntimeComponentCompilerService, ComponentCode } from './runtime-component-compiler.service';
+import { FileSystemService } from './file-system.service';
 
 /**
  * RuntimeModificationService
@@ -17,6 +18,7 @@ export class RuntimeModificationService {
   private compiler = inject(RuntimeComponentCompilerService);
   private appRef = inject(ApplicationRef);
   private environmentInjector = inject(EnvironmentInjector);
+  private fileSystem = inject(FileSystemService);
 
   /**
    * Execute an AI action
@@ -45,6 +47,21 @@ export class RuntimeModificationService {
 
         case 'CREATE_COMPONENT':
           return await this.createComponent(action.payload);
+
+        case 'READ_FILE':
+          return await this.readFile(action.payload);
+
+        case 'WRITE_FILE':
+          return await this.writeFile(action.payload);
+
+        case 'LIST_FILES':
+          return await this.listFiles(action.payload);
+
+        case 'EXECUTE_COMMAND':
+          return await this.executeCommand(action.payload);
+
+        case 'GET_PROJECT_STRUCTURE':
+          return await this.getProjectStructure();
 
         case 'EXPLAIN_CODE':
         case 'NONE':
@@ -285,6 +302,165 @@ export class RuntimeModificationService {
   }
 
   /**
+   * Read file from file system
+   */
+  private async readFile(payload: any): Promise<{ success: boolean; message: string }> {
+    const { filePath } = payload;
+
+    if (!filePath) {
+      return { success: false, message: 'File path is required' };
+    }
+
+    try {
+      const result = await this.fileSystem.readFile(filePath);
+
+      if (result.success && result.content) {
+        return {
+          success: true,
+          message: `File content:\n\n${result.content.substring(0, 1000)}${result.content.length > 1000 ? '...(truncated)' : ''}`
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || 'Failed to read file'
+        };
+      }
+    } catch (error: any) {
+      return { success: false, message: `Error reading file: ${error.message}` };
+    }
+  }
+
+  /**
+   * Write file to file system
+   */
+  private async writeFile(payload: any): Promise<{ success: boolean; message: string }> {
+    const { filePath, content } = payload;
+
+    if (!filePath || content === undefined) {
+      return { success: false, message: 'File path and content are required' };
+    }
+
+    try {
+      const result = await this.fileSystem.writeFile(filePath, content);
+
+      if (result.success) {
+        return {
+          success: true,
+          message: `Successfully wrote to ${filePath}`
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || 'Failed to write file'
+        };
+      }
+    } catch (error: any) {
+      return { success: false, message: `Error writing file: ${error.message}` };
+    }
+  }
+
+  /**
+   * List files in directory
+   */
+  private async listFiles(payload: any): Promise<{ success: boolean; message: string }> {
+    const { dirPath = 'src' } = payload || {};
+
+    try {
+      const result = await this.fileSystem.listFiles(dirPath);
+
+      if (result.success && result.files) {
+        const fileList = result.files
+          .map(f => `${f.isDirectory ? '📁' : '📄'} ${f.name}`)
+          .join('\n');
+
+        return {
+          success: true,
+          message: `Files in ${dirPath}:\n\n${fileList}`
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || 'Failed to list files'
+        };
+      }
+    } catch (error: any) {
+      return { success: false, message: `Error listing files: ${error.message}` };
+    }
+  }
+
+  /**
+   * Execute command
+   */
+  private async executeCommand(payload: any): Promise<{ success: boolean; message: string }> {
+    const { command, args = [] } = payload;
+
+    if (!command) {
+      return { success: false, message: 'Command is required' };
+    }
+
+    try {
+      const result = await this.fileSystem.executeCommand(command, args);
+
+      if (result.success) {
+        return {
+          success: true,
+          message: `Command executed successfully:\n\n${result.stdout?.substring(0, 500) || '(no output)'}${(result.stdout?.length || 0) > 500 ? '...(truncated)' : ''}`
+        };
+      } else {
+        return {
+          success: false,
+          message: `Command failed:\n${result.stderr || result.error || 'Unknown error'}`
+        };
+      }
+    } catch (error: any) {
+      return { success: false, message: `Error executing command: ${error.message}` };
+    }
+  }
+
+  /**
+   * Get project structure
+   */
+  private async getProjectStructure(): Promise<{ success: boolean; message: string }> {
+    try {
+      const result = await this.fileSystem.getProjectStructure();
+
+      if (result.success && result.structure) {
+        const structureStr = this.formatProjectStructure(result.structure, 0);
+        return {
+          success: true,
+          message: `Project structure:\n\n${structureStr}`
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || 'Failed to get project structure'
+        };
+      }
+    } catch (error: any) {
+      return { success: false, message: `Error getting project structure: ${error.message}` };
+    }
+  }
+
+  /**
+   * Format project structure for display
+   */
+  private formatProjectStructure(items: any[], depth: number): string {
+    let result = '';
+    const indent = '  '.repeat(depth);
+
+    for (const item of items) {
+      const icon = item.type === 'directory' ? '📁' : '📄';
+      result += `${indent}${icon} ${item.name}\n`;
+
+      if (item.children && item.children.length > 0) {
+        result += this.formatProjectStructure(item.children, depth + 1);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Validate action before execution
    */
   validateAction(action: any): { valid: boolean; reason?: string } {
@@ -303,6 +479,11 @@ export class RuntimeModificationService {
       'MODIFY_PROPERTY',
       'CHANGE_STYLE',
       'CREATE_COMPONENT',
+      'READ_FILE',
+      'WRITE_FILE',
+      'LIST_FILES',
+      'EXECUTE_COMMAND',
+      'GET_PROJECT_STRUCTURE',
       'EXPLAIN_CODE',
       'NONE'
     ];
