@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
+      - claude/feature-ai-expertise-012MJwB5wZU9c9WnX89NEYvA
+      - claude/fix-ai-max-tokens-01YH511QjmgXKDxzCNYEFMEu
       - fix-ai-max-tokens-01YH511QjmgXKDxzCNYEFMEu
   workflow_dispatch:
 
