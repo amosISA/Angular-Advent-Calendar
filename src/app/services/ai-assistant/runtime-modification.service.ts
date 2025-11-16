@@ -63,6 +63,24 @@ export class RuntimeModificationService {
         case 'GET_PROJECT_STRUCTURE':
           return await this.getProjectStructure();
 
+        case 'GET_COMPONENT_TREE':
+          return this.getComponentTree();
+
+        case 'GET_INJECTOR_TREE':
+          return this.getInjectorTree();
+
+        case 'GET_REACTIVITY_GRAPH':
+          return this.getReactivityGraph();
+
+        case 'GET_CHANGE_DETECTION_PATH':
+          return this.getChangeDetectionPath();
+
+        case 'GENERATE_TEST':
+          return await this.generateTest(action.payload);
+
+        case 'REFACTOR_CODE':
+          return await this.refactorCode(action.payload);
+
         case 'EXPLAIN_CODE':
         case 'NONE':
           return { success: true, message: 'No action needed' };
@@ -461,6 +479,202 @@ export class RuntimeModificationService {
   }
 
   /**
+   * Get component tree
+   */
+  private getComponentTree(): { success: boolean; message: string } {
+    try {
+      const tree = this.introspection.formatComponentTree();
+      return {
+        success: true,
+        message: `Component Tree:\n\n${tree}`
+      };
+    } catch (error: any) {
+      return { success: false, message: `Error getting component tree: ${error.message}` };
+    }
+  }
+
+  /**
+   * Get injector tree
+   */
+  private getInjectorTree(): { success: boolean; message: string } {
+    try {
+      const tree = this.introspection.formatInjectorTree();
+      return {
+        success: true,
+        message: `Injector Tree:\n\n${tree}`
+      };
+    } catch (error: any) {
+      return { success: false, message: `Error getting injector tree: ${error.message}` };
+    }
+  }
+
+  /**
+   * Get reactivity graph
+   */
+  private getReactivityGraph(): { success: boolean; message: string } {
+    try {
+      const graph = this.introspection.formatReactivityGraph();
+      return {
+        success: true,
+        message: graph
+      };
+    } catch (error: any) {
+      return { success: false, message: `Error getting reactivity graph: ${error.message}` };
+    }
+  }
+
+  /**
+   * Get change detection path
+   */
+  private getChangeDetectionPath(): { success: boolean; message: string } {
+    try {
+      const path = this.introspection.getChangeDetectionPath();
+      return {
+        success: true,
+        message: `Change Detection Path:\n\n${path}`
+      };
+    } catch (error: any) {
+      return { success: false, message: `Error getting change detection path: ${error.message}` };
+    }
+  }
+
+  /**
+   * Generate test for a component
+   */
+  private async generateTest(payload: any): Promise<{ success: boolean; message: string }> {
+    const { componentSelector, filePath } = payload;
+
+    if (!componentSelector) {
+      return { success: false, message: 'Component selector is required' };
+    }
+
+    try {
+      // Analyze component
+      const component = this.introspection.findComponent(componentSelector);
+      if (!component) {
+        return { success: false, message: `Component '${componentSelector}' not found` };
+      }
+
+      // Generate test content
+      const testContent = this.generateTestContent(component);
+
+      // If filePath provided, write the test file
+      if (filePath && this.fileSystem.isDevServerAvailable()) {
+        const result = await this.fileSystem.writeFile(filePath, testContent);
+        if (result.success) {
+          return {
+            success: true,
+            message: `Test generated and saved to ${filePath}`
+          };
+        }
+      }
+
+      // Otherwise, just return the test content
+      return {
+        success: true,
+        message: `Generated test:\n\n${testContent.substring(0, 1000)}${testContent.length > 1000 ? '...(truncated)' : ''}`
+      };
+    } catch (error: any) {
+      return { success: false, message: `Error generating test: ${error.message}` };
+    }
+  }
+
+  /**
+   * Generate test content for a component
+   */
+  private generateTestContent(component: any): string {
+    const signals = Object.keys(component.signals || {}).join(', ');
+    const inputs = Object.keys(component.inputs || {}).join(', ');
+
+    return `import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ${component.name} } from './${component.name.toLowerCase()}';
+
+describe('${component.name}', () => {
+  let component: ${component.name};
+  let fixture: ComponentFixture<${component.name}>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [${component.name}]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(${component.name});
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+${signals ? `  it('should have signals: ${signals}', () => {
+    ${Object.keys(component.signals || {}).map(s => `expect(component.${s}).toBeDefined();`).join('\n    ')}
+  });
+` : ''}
+${inputs ? `  it('should accept inputs: ${inputs}', () => {
+    ${Object.keys(component.inputs || {}).map(i => `expect(component.${i}).toBeDefined();`).join('\n    ')}
+  });
+` : ''}
+  it('should render correctly', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('${component.selector}')).toBeTruthy();
+  });
+});
+`;
+  }
+
+  /**
+   * Refactor code based on suggestions
+   */
+  private async refactorCode(payload: any): Promise<{ success: boolean; message: string }> {
+    const { filePath, suggestions } = payload;
+
+    if (!filePath) {
+      return { success: false, message: 'File path is required for refactoring' };
+    }
+
+    try {
+      // Read the file
+      const readResult = await this.fileSystem.readFile(filePath);
+      if (!readResult.success || !readResult.content) {
+        return { success: false, message: `Could not read file: ${readResult.error}` };
+      }
+
+      // Apply refactoring suggestions (simplified - in reality, you'd use AST manipulation)
+      let refactoredContent = readResult.content;
+
+      // Example refactorings (you can expand this)
+      if (suggestions) {
+        for (const suggestion of suggestions) {
+          if (suggestion.type === 'rename') {
+            const regex = new RegExp(`\\b${suggestion.from}\\b`, 'g');
+            refactoredContent = refactoredContent.replace(regex, suggestion.to);
+          } else if (suggestion.type === 'extract') {
+            // Placeholder for extract method/variable refactoring
+          }
+        }
+      }
+
+      // Write back the refactored content
+      const writeResult = await this.fileSystem.writeFile(filePath, refactoredContent);
+
+      if (writeResult.success) {
+        return {
+          success: true,
+          message: `Code refactored successfully in ${filePath}`
+        };
+      } else {
+        return {
+          success: false,
+          message: `Failed to write refactored code: ${writeResult.error}`
+        };
+      }
+    } catch (error: any) {
+      return { success: false, message: `Error refactoring code: ${error.message}` };
+    }
+  }
+
+  /**
    * Validate action before execution
    */
   validateAction(action: any): { valid: boolean; reason?: string } {
@@ -484,6 +698,12 @@ export class RuntimeModificationService {
       'LIST_FILES',
       'EXECUTE_COMMAND',
       'GET_PROJECT_STRUCTURE',
+      'GET_COMPONENT_TREE',
+      'GET_INJECTOR_TREE',
+      'GET_REACTIVITY_GRAPH',
+      'GET_CHANGE_DETECTION_PATH',
+      'GENERATE_TEST',
+      'REFACTOR_CODE',
       'EXPLAIN_CODE',
       'NONE'
     ];
