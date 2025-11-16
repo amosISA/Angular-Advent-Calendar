@@ -92,23 +92,34 @@ export class RuntimeComponentCompilerService {
     // Create component class dynamically
     class DynamicComponent {
       constructor() {
-        // Assign all properties and methods from componentLogic
-        // This includes signals, which need to be re-created in this context
+        console.log('[RuntimeCompiler] Creating component, componentLogic keys:', Object.keys(componentLogic));
+
+        // First pass: assign all non-function properties (including signals)
         Object.keys(componentLogic).forEach(key => {
           const value = componentLogic[key];
 
           // Check if it's a signal by checking if it has update/set methods
           if (typeof value === 'function' && value.set && value.update) {
-            // It's already a signal, assign it directly
+            console.log(`[RuntimeCompiler] Assigning signal: ${key}`);
             (this as any)[key] = value;
-          } else if (typeof value === 'function') {
-            // It's a method, bind it to this instance
-            (this as any)[key] = value.bind(this);
-          } else {
-            // It's a regular property
+          } else if (typeof value !== 'function') {
+            console.log(`[RuntimeCompiler] Assigning property: ${key}`, value);
             (this as any)[key] = value;
           }
         });
+
+        // Second pass: bind all methods (after properties are set)
+        Object.keys(componentLogic).forEach(key => {
+          const value = componentLogic[key];
+
+          if (typeof value === 'function' && !value.set && !value.update) {
+            console.log(`[RuntimeCompiler] Binding method: ${key}`);
+            // Bind the method to this component instance
+            (this as any)[key] = value.bind(this);
+          }
+        });
+
+        console.log('[RuntimeCompiler] Component instance created with:', Object.keys(this));
       }
     }
 

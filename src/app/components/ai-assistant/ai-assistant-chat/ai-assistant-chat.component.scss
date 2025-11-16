@@ -445,7 +445,7 @@
   background: white;
   border-top: 1px solid #e0e0e0;
   flex-shrink: 0;
-  max-height: 120px;
+  // Removed max-height to allow component context to expand
 
   .input-actions {
     display: flex;
@@ -633,6 +633,9 @@
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   border-top: 1px solid rgba(102, 126, 234, 0.1);
   border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+  flex-shrink: 0; // Prevent shrinking
+  max-height: 200px; // Limit height if many components
+  overflow-y: auto; // Scroll if too many chips
 
   .context-header {
     display: flex;
