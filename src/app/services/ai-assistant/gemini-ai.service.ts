@@ -160,7 +160,8 @@ When user asks you to create a component (e.g., "create a Christmas story", "mak
 
 **Response Format:**
 
-You must respond with a JSON object:
+You MUST respond with a VALID JSON object. IMPORTANT: Use REGULAR STRINGS (double quotes), NOT template literals (backticks):
+
 {
   "message": "Your friendly response",
   "action": {
@@ -168,6 +169,12 @@ You must respond with a JSON object:
     "payload": { /* action data */ }
   }
 }
+
+CRITICAL: When including HTML templates or CSS in your JSON:
+- Use regular JSON strings with "double quotes"
+- Escape newlines as \\n
+- DO NOT use backticks or template literals
+- Example: "template": "<div>\\n  <h1>Title</h1>\\n</div>"
 
 **Available Action Types:**
 
@@ -181,143 +188,32 @@ You must respond with a JSON object:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**CREATE_COMPONENT Examples:**
+**CREATE_COMPONENT Example:**
 
-User: "Create a Christmas story component"
-Response: {
-  "message": "I'll create a beautiful Christmas story component with animations!",
+User: "Create a navbar component"
+Your Response (CORRECT JSON format):
+```json
+{
+  "message": "Creating a sleek navigation bar component with smooth animations!",
   "action": {
     "type": "CREATE_COMPONENT",
     "payload": {
       "componentCode": {
-        "selector": "app-christmas-story",
-        "name": "ChristmasStory",
-        "template": \`
-          <div class="story-container">
-            <h1 class="story-title">The Magic of Christmas 🎄</h1>
-            <div class="story-content">
-              @for (chapter of chapters; track chapter.id) {
-                <div class="chapter">
-                  <h2>{{ chapter.title }}</h2>
-                  <p>{{ chapter.content }}</p>
-                </div>
-              }
-            </div>
-            <div class="snowflakes">
-              @for (flake of snowflakeCount; track flake) {
-                <div class="snowflake">❄️</div>
-              }
-            </div>
-          </div>
-        \`,
-        "styles": \`
-          .story-container {
-            padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            color: white;
-            animation: fadeIn 1s ease;
-          }
-          .story-title {
-            font-size: 3rem;
-            text-align: center;
-            margin-bottom: 40px;
-            animation: glow 2s ease-in-out infinite;
-          }
-          .chapter {
-            margin: 30px 0;
-            padding: 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            animation: slideUp 0.6s ease;
-          }
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          @keyframes glow {
-            0%, 100% { text-shadow: 0 0 20px rgba(255,255,255,0.5); }
-            50% { text-shadow: 0 0 40px rgba(255,255,255,0.8); }
-          }
-        \`
+        "selector": "app-navbar",
+        "name": "NavbarComponent",
+        "template": "<nav class=\"navbar\">\\n  <div class=\"brand\">My App</div>\\n  <button class=\"nav-btn\">Menu</button>\\n</nav>",
+        "styles": ".navbar { display: flex; justify-content: space-between; padding: 20px; background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%); color: white; }"
       }
     }
   }
 }
+```
 
-User: "Build a countdown timer"
-Response: {
-  "message": "Creating an interactive countdown timer component!",
-  "action": {
-    "type": "CREATE_COMPONENT",
-    "payload": {
-      "componentCode": {
-        "selector": "app-countdown",
-        "name": "Countdown",
-        "template": \`
-          <div class="timer">
-            <h2>Christmas Countdown</h2>
-            <div class="time-display">
-              <div class="time-unit">
-                <span class="number">{{ days }}</span>
-                <span class="label">Days</span>
-              </div>
-              <div class="time-unit">
-                <span class="number">{{ hours }}</span>
-                <span class="label">Hours</span>
-              </div>
-              <div class="time-unit">
-                <span class="number">{{ minutes }}</span>
-                <span class="label">Minutes</span>
-              </div>
-              <div class="time-unit">
-                <span class="number">{{ seconds }}</span>
-                <span class="label">Seconds</span>
-              </div>
-            </div>
-          </div>
-        \`,
-        "styles": \`
-          .timer {
-            text-align: center;
-            padding: 40px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border-radius: 20px;
-            color: white;
-          }
-          .time-display {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
-          }
-          .time-unit {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 12px;
-            min-width: 100px;
-          }
-          .number {
-            font-size: 3rem;
-            font-weight: bold;
-          }
-          .label {
-            font-size: 1rem;
-            text-transform: uppercase;
-            margin-top: 8px;
-          }
-        \`
-      }
-    }
-  }
-}
+REMEMBER:
+- Use proper JSON strings with escaped newlines (\\n)
+- NO backticks or template literals
+- Make templates clean and well-formatted
+- Include beautiful gradients, animations, and modern design
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -483,6 +379,19 @@ ${message}
       // Remove markdown code blocks if present
       let cleanedText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
 
+      // Convert template literals to regular strings for JSON parsing
+      // Match backtick template literals and convert to regular JSON strings
+      cleanedText = cleanedText.replace(/:\s*`([^`]*)`/g, (match, content) => {
+        // Escape quotes and newlines in the content
+        const escaped = content
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+        return `: "${escaped}"`;
+      });
+
       // Try to extract JSON from response
       const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
 
@@ -499,6 +408,7 @@ ${message}
           }
         } catch (parseError) {
           console.warn('JSON parse error:', parseError);
+          console.warn('Cleaned text:', cleanedText.substring(0, 500));
         }
       }
 

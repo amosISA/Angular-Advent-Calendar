@@ -92,13 +92,19 @@
             }
           </div>
           <div class="message-content">
-            <div class="message-text">{{ message.content }}</div>
+            <div class="message-text">
+              @if (message.action && message.action.type === 'CREATE_COMPONENT') {
+                🎨 Creating your component...
+              } @else {
+                {{ message.content }}
+              }
+            </div>
             @if (message.action && message.action.type !== 'NONE') {
               <div class="action-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                 </svg>
-                Action: {{ message.action.type }}
+                {{ getActionLabel(message.action.type) }}
               </div>
             }
           </div>

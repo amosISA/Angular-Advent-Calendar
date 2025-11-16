@@ -216,10 +216,46 @@ export class AIAssistantChatComponent {
    */
   private async executeAction(action: any): Promise<void> {
     try {
+      // Add a status message based on action type
+      let statusMessage = '';
+      switch (action.type) {
+        case 'CREATE_COMPONENT':
+          statusMessage = '✨ Component created! Check the "AI Generated" tab above.';
+          break;
+        case 'HIGHLIGHT_COMPONENTS':
+          statusMessage = '✓ Components highlighted';
+          break;
+        case 'INSPECT_ELEMENT':
+          statusMessage = action.payload?.enabled ? '👁️ Inspector activated - click elements to inspect' : '✓ Inspector disabled';
+          break;
+        case 'MODIFY_PROPERTY':
+          statusMessage = '✓ Property updated';
+          break;
+        case 'CHANGE_STYLE':
+          statusMessage = '✓ Styles applied';
+          break;
+      }
+
       const result = await this.runtimeMod.executeAction(action);
       console.log('Action executed:', result);
+
+      // Add status message to chat if relevant
+      if (statusMessage && action.type !== 'NONE') {
+        this.addMessage({
+          id: this.generateId(),
+          role: 'assistant',
+          content: statusMessage,
+          timestamp: Date.now()
+        });
+      }
     } catch (error) {
       console.error('Error executing action:', error);
+      this.addMessage({
+        id: this.generateId(),
+        role: 'assistant',
+        content: `⚠️ Action failed: ${error}`,
+        timestamp: Date.now()
+      });
     }
   }
 
@@ -326,5 +362,20 @@ export class AIAssistantChatComponent {
   getSelectedModelName(): string {
     const model = this.availableModels.find(m => m.id === this.selectedModel());
     return model?.name || this.selectedModel();
+  }
+
+  /**
+   * Get user-friendly action label
+   */
+  protected getActionLabel(actionType: string): string {
+    const labels: Record<string, string> = {
+      'CREATE_COMPONENT': 'Component Creation',
+      'HIGHLIGHT_COMPONENTS': 'Highlight',
+      'INSPECT_ELEMENT': 'Inspector',
+      'MODIFY_PROPERTY': 'Property Change',
+      'CHANGE_STYLE': 'Style Update',
+      'LIST_COMPONENTS': 'Component List'
+    };
+    return labels[actionType] || actionType;
   }
 }
