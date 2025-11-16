@@ -339,6 +339,132 @@ app.post('/api/component/create', async (req, res) => {
 });
 
 /**
+ * MCP-style directory tree (recursive structure)
+ */
+app.post('/api/mcp/directory-tree', async (req, res) => {
+  try {
+    const { path: dirPath } = req.body;
+
+    if (!dirPath) {
+      return res.status(400).json({ success: false, error: 'path is required' });
+    }
+
+    const fullPath = path.join(__dirname, dirPath);
+    const srcPath = path.join(__dirname, 'src');
+
+    if (!fullPath.startsWith(srcPath) && !fullPath.startsWith(__dirname)) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const tree = await buildDirectoryTree(fullPath, 3);
+    res.json({ success: true, tree });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * MCP-style list directory
+ */
+app.post('/api/mcp/list-directory', async (req, res) => {
+  try {
+    const { path: dirPath } = req.body;
+
+    if (!dirPath) {
+      return res.status(400).json({ success: false, error: 'path is required' });
+    }
+
+    const fullPath = path.join(__dirname, dirPath);
+    const srcPath = path.join(__dirname, 'src');
+
+    if (!fullPath.startsWith(srcPath) && !fullPath.startsWith(__dirname)) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const entries = await fs.readdir(fullPath, { withFileTypes: true });
+    const items = entries.map(entry => ({
+      name: entry.name,
+      type: entry.isDirectory() ? 'directory' : 'file',
+      path: path.join(dirPath, entry.name)
+    }));
+
+    res.json({ success: true, entries: items });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * MCP-style read file
+ */
+app.post('/api/mcp/read-file', async (req, res) => {
+  try {
+    const { path: filePath } = req.body;
+
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'path is required' });
+    }
+
+    const fullPath = path.join(__dirname, filePath);
+    const srcPath = path.join(__dirname, 'src');
+
+    if (!fullPath.startsWith(srcPath) && !fullPath.startsWith(__dirname)) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const content = await fs.readFile(fullPath, 'utf-8');
+    res.json({ success: true, content, path: filePath });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Helper to build directory tree
+ */
+async function buildDirectoryTree(dir, maxDepth, currentDepth = 0) {
+  if (currentDepth >= maxDepth) {
+    return null;
+  }
+
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const children = [];
+
+    for (const entry of entries) {
+      // Skip node_modules, dist, .git, etc.
+      if (['node_modules', 'dist', '.git', '.angular'].includes(entry.name)) {
+        continue;
+      }
+
+      const fullPath = path.join(dir, entry.name);
+      const relativePath = path.relative(__dirname, fullPath);
+
+      if (entry.isDirectory()) {
+        const subtree = await buildDirectoryTree(fullPath, maxDepth, currentDepth + 1);
+        children.push({
+          type: 'directory',
+          name: entry.name,
+          path: relativePath,
+          children: subtree
+        });
+      } else {
+        children.push({
+          type: 'file',
+          name: entry.name,
+          path: relativePath
+        });
+      }
+    }
+
+    return children;
+  } catch (error) {
+    console.error('Error building directory tree:', error);
+    return [];
+  }
+}
+
+/**
  * Get file stats
  */
 app.post('/api/files/stats', async (req, res) => {
