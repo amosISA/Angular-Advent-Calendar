@@ -176,37 +176,81 @@ export class RuntimeModificationService {
    * Create a component at runtime
    */
   private async createComponent(payload: any): Promise<{ success: boolean; message: string }> {
-    const { componentCode } = payload;
+    const { componentCode, position = 'bottom' } = payload;
 
     if (!componentCode || !componentCode.template) {
       return { success: false, message: 'Invalid component code. Must include template.' };
     }
 
     try {
-      // Get dynamic container and tab navigation from window
-      const tabNav = (window as any).__appTabNav;
-      const dynamicContainer = (window as any).__appDynamicContainer;
+      // Create a container element for the component
+      const containerElement = document.createElement('div');
+      containerElement.id = `ai-component-${Date.now()}`;
+      containerElement.style.cssText = 'width: 100%; display: block;';
 
-      if (!dynamicContainer) {
-        return { success: false, message: 'Dynamic component container not available' };
+      // Determine insertion position
+      let targetElement: HTMLElement | null = null;
+      let insertBefore = false;
+
+      switch (position) {
+        case 'top':
+          targetElement = document.body;
+          insertBefore = true;
+          break;
+        case 'bottom':
+          targetElement = document.body;
+          insertBefore = false;
+          break;
+        case 'before-calendar':
+          targetElement = document.querySelector('app-advent-calendar') as HTMLElement;
+          insertBefore = true;
+          break;
+        case 'after-calendar':
+          targetElement = document.querySelector('app-advent-calendar') as HTMLElement;
+          insertBefore = false;
+          break;
+        default:
+          targetElement = document.body;
+          insertBefore = false;
       }
 
-      // Get container ref
-      const container = dynamicContainer.getContainer();
-
-      // Compile and create component
-      await this.compiler.compileAndCreateComponent(componentCode, container);
-
-      // Update tab state
-      dynamicContainer.setNotEmpty();
-      if (tabNav) {
-        tabNav.setHasAIContent(true);
-        tabNav.setActiveTab('ai-generated');
+      if (!targetElement) {
+        return { success: false, message: 'Could not find target element for insertion' };
       }
+
+      // Insert container at specified position
+      if (insertBefore && targetElement.parentNode) {
+        targetElement.parentNode.insertBefore(containerElement, targetElement);
+      } else if (insertBefore && position === 'top') {
+        document.body.insertBefore(containerElement, document.body.firstChild);
+      } else {
+        targetElement.appendChild(containerElement);
+      }
+
+      // Create a simple wrapper to hold the component
+      const wrapper = document.createElement('div');
+      containerElement.appendChild(wrapper);
+
+      // For now, render the component as simple HTML since we need ViewContainerRef for full Angular components
+      // TODO: Implement proper Angular component compilation with ViewContainerRef
+      wrapper.innerHTML = componentCode.template;
+
+      // Apply styles
+      if (componentCode.styles) {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = componentCode.styles;
+        containerElement.appendChild(styleElement);
+      }
+
+      const positionText = position === 'top' ? 'at the top' :
+                          position === 'bottom' ? 'at the bottom' :
+                          position === 'before-calendar' ? 'before the calendar' :
+                          position === 'after-calendar' ? 'after the calendar' :
+                          'on the page';
 
       return {
         success: true,
-        message: `Component "${componentCode.name || 'DynamicComponent'}" created successfully! Check the "AI Generated" tab.`
+        message: `Component "${componentCode.name || 'DynamicComponent'}" created ${positionText}!`
       };
     } catch (error: any) {
       return {

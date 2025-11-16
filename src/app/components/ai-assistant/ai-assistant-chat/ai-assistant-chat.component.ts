@@ -220,7 +220,7 @@ export class AIAssistantChatComponent {
       let statusMessage = '';
       switch (action.type) {
         case 'CREATE_COMPONENT':
-          statusMessage = '✨ Component created! Check the "AI Generated" tab above.';
+          statusMessage = '✨ Component created and added to the page!';
           break;
         case 'HIGHLIGHT_COMPONENTS':
           statusMessage = '✓ Components highlighted';
