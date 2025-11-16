@@ -74,31 +74,51 @@ export class RuntimeComponentCompilerService {
 
     if (componentCode.typescript) {
       try {
-        // Execute TypeScript code to get component logic
-        // This is simplified - in production you'd use a proper TypeScript compiler
-        const func = new Function('signal', 'inject', componentCode.typescript + '; return componentLogic;');
+        // Create a function that returns the component logic
+        // We need to ensure signal and inject are available in the execution context
+        const func = new Function('signal', 'inject', `
+          ${componentCode.typescript}
+          return componentLogic;
+        `);
+
+        // Execute the function with Angular's signal and inject
         componentLogic = func(signal, inject);
       } catch (error) {
         console.warn('TypeScript parsing error, using empty logic:', error);
+        console.error('TypeScript code:', componentCode.typescript);
       }
     }
 
     // Create component class dynamically
-    // Note: This uses JIT compilation at runtime, bypassing AOT
     class DynamicComponent {
-      // Merge with provided logic
       constructor() {
-        Object.assign(this, componentLogic);
+        // Assign all properties and methods from componentLogic
+        // This includes signals, which need to be re-created in this context
+        Object.keys(componentLogic).forEach(key => {
+          const value = componentLogic[key];
+
+          // Check if it's a signal by checking if it has update/set methods
+          if (typeof value === 'function' && value.set && value.update) {
+            // It's already a signal, assign it directly
+            (this as any)[key] = value;
+          } else if (typeof value === 'function') {
+            // It's a method, bind it to this instance
+            (this as any)[key] = value.bind(this);
+          } else {
+            // It's a regular property
+            (this as any)[key] = value;
+          }
+        });
       }
     }
 
     // Apply component metadata dynamically to avoid AOT issues
     const metadata = {
       selector: componentCode.selector,
-      template: componentCode.template as string, // Type assertion for runtime
+      template: componentCode.template as string,
       styles: componentCode.styles ? [componentCode.styles as string] : [],
       standalone: true,
-      imports: [CommonModule] // Include CommonModule for directives like *ngIf, *ngFor
+      imports: [CommonModule]
     };
 
     // Use ComponentDecorator at runtime

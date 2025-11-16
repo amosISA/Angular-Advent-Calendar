@@ -112,6 +112,15 @@ export class AIAssistantChatComponent {
       }
     });
 
+    // Watch for component context changes and scroll to bottom
+    effect(() => {
+      const components = this.selectedComponents();
+      if (components.length > 0) {
+        // Scroll after component chips are rendered
+        setTimeout(() => this.scrollToBottom(), 100);
+      }
+    });
+
     // Add welcome message
     this.addMessage({
       id: this.generateId(),
