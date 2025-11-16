@@ -12,13 +12,7 @@
   </header>
 
   <main class="main-content">
-    <app-tab-navigation #tabNav />
-
-    @if (tabNav.activeTab() === 'calendar') {
-      <app-advent-calendar />
-    } @else if (tabNav.activeTab() === 'ai-generated') {
-      <app-dynamic-component-container #dynamicContainer />
-    }
+    <app-advent-calendar />
   </main>
 
   <footer class="footer">

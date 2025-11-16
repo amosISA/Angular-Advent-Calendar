@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, ApplicationRef, createComponent, EnvironmentInjector } from '@angular/core';
 import { AngularIntrospectionService } from './angular-introspection.service';
 import { ComponentInspectorService } from './component-inspector.service';
 import { RuntimeComponentCompilerService, ComponentCode } from './runtime-component-compiler.service';
@@ -15,6 +15,8 @@ export class RuntimeModificationService {
   private introspection = inject(AngularIntrospectionService);
   private inspector = inject(ComponentInspectorService);
   private compiler = inject(RuntimeComponentCompilerService);
+  private appRef = inject(ApplicationRef);
+  private environmentInjector = inject(EnvironmentInjector);
 
   /**
    * Execute an AI action
@@ -173,7 +175,7 @@ export class RuntimeModificationService {
   }
 
   /**
-   * Create a component at runtime
+   * Create a component at runtime using Angular's JIT compiler
    */
   private async createComponent(payload: any): Promise<{ success: boolean; message: string }> {
     const { componentCode, position = 'bottom' } = payload;
@@ -183,10 +185,13 @@ export class RuntimeModificationService {
     }
 
     try {
-      // Create a container element for the component
-      const containerElement = document.createElement('div');
-      containerElement.id = `ai-component-${Date.now()}`;
-      containerElement.style.cssText = 'width: 100%; display: block;';
+      // Create the component class using the compiler service
+      const componentClass = this.compiler.createComponentClass(componentCode);
+
+      // Create a host element for the component
+      const hostElement = document.createElement('div');
+      hostElement.id = `ai-component-${Date.now()}`;
+      hostElement.style.cssText = 'width: 100%; display: block;';
 
       // Determine insertion position
       let targetElement: HTMLElement | null = null;
@@ -218,29 +223,30 @@ export class RuntimeModificationService {
         return { success: false, message: 'Could not find target element for insertion' };
       }
 
-      // Insert container at specified position
+      // Insert host element at specified position
       if (insertBefore && targetElement.parentNode) {
-        targetElement.parentNode.insertBefore(containerElement, targetElement);
+        targetElement.parentNode.insertBefore(hostElement, targetElement);
       } else if (insertBefore && position === 'top') {
-        document.body.insertBefore(containerElement, document.body.firstChild);
+        document.body.insertBefore(hostElement, document.body.firstChild);
       } else {
-        targetElement.appendChild(containerElement);
+        targetElement.appendChild(hostElement);
       }
 
-      // Create a simple wrapper to hold the component
-      const wrapper = document.createElement('div');
-      containerElement.appendChild(wrapper);
+      // Create the Angular component instance
+      const componentRef = createComponent(componentClass, {
+        environmentInjector: this.environmentInjector,
+        hostElement: hostElement
+      });
 
-      // For now, render the component as simple HTML since we need ViewContainerRef for full Angular components
-      // TODO: Implement proper Angular component compilation with ViewContainerRef
-      wrapper.innerHTML = componentCode.template;
+      // Attach to Angular's change detection
+      this.appRef.attachView(componentRef.hostView);
 
-      // Apply styles
-      if (componentCode.styles) {
-        const styleElement = document.createElement('style');
-        styleElement.textContent = componentCode.styles;
-        containerElement.appendChild(styleElement);
-      }
+      // Store reference for cleanup
+      this.compiler.createdComponents.update((map: Map<string, any>) => {
+        const newMap = new Map(map);
+        newMap.set(componentCode.name, componentRef);
+        return newMap;
+      });
 
       const positionText = position === 'top' ? 'at the top' :
                           position === 'bottom' ? 'at the bottom' :
@@ -253,6 +259,7 @@ export class RuntimeModificationService {
         message: `Component "${componentCode.name || 'DynamicComponent'}" created ${positionText}!`
       };
     } catch (error: any) {
+      console.error('Component creation error:', error);
       return {
         success: false,
         message: `Failed to create component: ${error.message}`

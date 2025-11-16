@@ -24,8 +24,8 @@ export class RuntimeComponentCompilerService {
   private compiler = inject(Compiler);
   private environmentInjector = inject(EnvironmentInjector);
 
-  // Store created components
-  private createdComponents = signal<Map<string, ComponentRef<any>>>(new Map());
+  // Store created components (public for runtime modification service)
+  createdComponents = signal<Map<string, ComponentRef<any>>>(new Map());
 
   /**
    * Compile and create a component from code at runtime
@@ -67,7 +67,7 @@ export class RuntimeComponentCompilerService {
   /**
    * Create a component class from code
    */
-  private createComponentClass(componentCode: ComponentCode): Type<any> {
+  createComponentClass(componentCode: ComponentCode): Type<any> {
     // Parse TypeScript code if provided
     let componentLogic: any = {};
 
