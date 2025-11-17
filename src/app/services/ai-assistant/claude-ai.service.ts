@@ -28,7 +28,7 @@ export class ClaudeAIService {
   private readonly _introspection = inject(AngularIntrospectionService);
 
   private readonly _apiKey = signal<string>('');
-  private readonly _selectedModel = signal<string>('claude-3-5-sonnet-20241022');
+  private readonly _selectedModel = signal<string>('claude-sonnet-4-5-20250929');
   private readonly _baseUrl = 'https://api.anthropic.com/v1/messages';
   private readonly _devServerUrl = 'http://localhost:4201';
 

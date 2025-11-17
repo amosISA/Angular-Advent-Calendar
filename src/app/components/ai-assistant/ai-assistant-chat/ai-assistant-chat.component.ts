@@ -37,15 +37,22 @@ export class AIAssistantChatComponent {
   readonly apiKey = signal<string>('');
   readonly isConfigured = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
-  readonly selectedModel = signal<string>('claude-3-5-sonnet-20241022');
+  readonly selectedModel = signal<string>('claude-sonnet-4-5-20250929');
   readonly modelChangeNotification = signal<boolean>(false);
   readonly selectedComponents = signal<ElementInfo[]>([]);
 
   // Available AI models
   readonly availableModels = [
     {
+      id: 'claude-sonnet-4-5-20250929',
+      name: 'Claude Sonnet 4.5 (Most Powerful)',
+      provider: 'Anthropic',
+      keyUrl: 'https://console.anthropic.com/settings/keys',
+      features: ['Most Advanced', 'Tool Use', 'Project Exploration', 'Smart Component Creation']
+    },
+    {
       id: 'claude-3-5-sonnet-20241022',
-      name: 'Claude 3.5 Sonnet (Recommended)',
+      name: 'Claude 3.5 Sonnet',
       provider: 'Anthropic',
       keyUrl: 'https://console.anthropic.com/settings/keys',
       features: ['Tool Use', 'Project Exploration', 'Smart Component Creation']
@@ -142,7 +149,7 @@ export class AIAssistantChatComponent {
     this.addMessage({
       id: this._generateId(),
       role: 'assistant',
-      content: 'Hi! I\'m your AI assistant powered by Claude and Gemini. I can explore your project, create components, and help you understand this Angular application. What would you like to know?',
+      content: 'Hi! I\'m your AI assistant powered by Claude Sonnet 4.5 (the newest and most powerful model) and Gemini. I can explore your project, create components, and help you understand this Angular application. What would you like to know?',
       timestamp: Date.now()
     });
   }
