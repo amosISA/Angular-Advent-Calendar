@@ -2,6 +2,7 @@ import { Component, inject, signal, effect, ElementRef, viewChild, PLATFORM_ID }
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GeminiAIService } from '../../../services/ai-assistant/gemini-ai.service';
+import { ClaudeAIService } from '../../../services/ai-assistant/claude-ai.service';
 import { RuntimeModificationService } from '../../../services/ai-assistant/runtime-modification.service';
 import { ComponentInspectorService } from '../../../services/ai-assistant/component-inspector.service';
 import { ChatMessage, ElementInfo } from '../../../services/ai-assistant/models';
@@ -18,11 +19,12 @@ import { ChatMessage, ElementInfo } from '../../../services/ai-assistant/models'
   styleUrls: ['./ai-assistant-chat.component.scss']
 })
 export class AIAssistantChatComponent {
-  private geminiService = inject(GeminiAIService);
-  private runtimeMod = inject(RuntimeModificationService);
-  private inspector = inject(ComponentInspectorService);
-  private platformId = inject(PLATFORM_ID);
-  private isBrowser = isPlatformBrowser(this.platformId);
+  private readonly _geminiService = inject(GeminiAIService);
+  private readonly _claudeService = inject(ClaudeAIService);
+  private readonly _runtimeMod = inject(RuntimeModificationService);
+  private readonly _inspector = inject(ComponentInspectorService);
+  private readonly _platformId = inject(PLATFORM_ID);
+  private readonly _isBrowser = isPlatformBrowser(this._platformId);
 
   // Expose Object.keys to template
   protected readonly Object = Object;
@@ -35,35 +37,46 @@ export class AIAssistantChatComponent {
   readonly apiKey = signal<string>('');
   readonly isConfigured = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
-  readonly selectedModel = signal<string>('gemini-2.5-flash');
+  readonly selectedModel = signal<string>('claude-3-5-sonnet-20241022');
   readonly modelChangeNotification = signal<boolean>(false);
   readonly selectedComponents = signal<ElementInfo[]>([]);
 
   // Available AI models
   readonly availableModels = [
     {
+      id: 'claude-3-5-sonnet-20241022',
+      name: 'Claude 3.5 Sonnet (Recommended)',
+      provider: 'Anthropic',
+      keyUrl: 'https://console.anthropic.com/settings/keys',
+      features: ['Tool Use', 'Project Exploration', 'Smart Component Creation']
+    },
+    {
+      id: 'claude-3-5-haiku-20241022',
+      name: 'Claude 3.5 Haiku',
+      provider: 'Anthropic',
+      keyUrl: 'https://console.anthropic.com/settings/keys',
+      features: ['Fast', 'Tool Use']
+    },
+    {
       id: 'gemini-2.5-flash',
       name: 'Gemini 2.5 Flash',
       provider: 'Google',
-      apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       keyUrl: 'https://aistudio.google.com/app/apikey',
-      free: true
+      features: ['Free', 'Fast']
     },
     {
       id: 'gemini-1.5-flash',
       name: 'Gemini 1.5 Flash',
       provider: 'Google',
-      apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
       keyUrl: 'https://aistudio.google.com/app/apikey',
-      free: true
+      features: ['Free']
     },
     {
       id: 'gemini-1.5-pro',
       name: 'Gemini 1.5 Pro',
       provider: 'Google',
-      apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
       keyUrl: 'https://aistudio.google.com/app/apikey',
-      free: true
+      features: ['Free']
     }
   ];
 
@@ -80,18 +93,17 @@ export class AIAssistantChatComponent {
 
   constructor() {
     // Load API key and model from localStorage (browser only)
-    if (this.isBrowser) {
-      const savedKey = localStorage.getItem('gemini-api-key');
+    if (this._isBrowser) {
       const savedModel = localStorage.getItem('selected-model');
 
       if (savedModel) {
         this.selectedModel.set(savedModel);
       }
 
+      const savedKey = localStorage.getItem('ai-api-key');
       if (savedKey) {
         this.apiKey.set(savedKey);
-        this.geminiService.setApiKey(savedKey);
-        this.geminiService.setModel(this.selectedModel());
+        this._configureAIService(savedKey, this.selectedModel());
         this.isConfigured.set(true);
       }
     }
@@ -99,13 +111,13 @@ export class AIAssistantChatComponent {
     // Auto-scroll effect
     effect(() => {
       if (this.messages().length > 0) {
-        setTimeout(() => this.scrollToBottom(), 100);
+        setTimeout(() => this._scrollToBottom(), 100);
       }
     });
 
     // Watch for component selections from inspector
     effect(() => {
-      const selected = this.inspector.selectedElement();
+      const selected = this._inspector.selectedElement();
       if (selected && selected.component) {
         // Check if already in context before adding
         const exists = this.selectedComponents().find(
@@ -123,14 +135,14 @@ export class AIAssistantChatComponent {
     effect(() => {
       const components = this.selectedComponents();
       // Scroll whenever the list changes (add or remove)
-      setTimeout(() => this.scrollToBottom(), 100);
+      setTimeout(() => this._scrollToBottom(), 100);
     });
 
     // Add welcome message
     this.addMessage({
-      id: this.generateId(),
+      id: this._generateId(),
       role: 'assistant',
-      content: 'Hi! I\'m your AI assistant. I can help you understand and interact with this Angular application. What would you like to know?',
+      content: 'Hi! I\'m your AI assistant powered by Claude and Gemini. I can explore your project, create components, and help you understand this Angular application. What would you like to know?',
       timestamp: Date.now()
     });
   }
@@ -157,15 +169,38 @@ export class AIAssistantChatComponent {
   }
 
   /**
+   * Configure the appropriate AI service based on selected model
+   */
+  private _configureAIService(apiKey: string, modelId: string): void {
+    const isClaude = modelId.startsWith('claude');
+    if (isClaude) {
+      this._claudeService.setApiKey(apiKey);
+      this._claudeService.setModel(modelId);
+    } else {
+      this._geminiService.setApiKey(apiKey);
+      this._geminiService.setModel(modelId);
+    }
+  }
+
+  /**
+   * Get the current AI service based on selected model
+   */
+  private _getCurrentAIService(): ClaudeAIService | GeminiAIService {
+    return this.selectedModel().startsWith('claude')
+      ? this._claudeService
+      : this._geminiService;
+  }
+
+  /**
    * Save API key
    */
   saveApiKey(): void {
-    if (!this.isBrowser) return;
+    if (!this._isBrowser) return;
 
     const key = this.apiKey().trim();
     if (key) {
-      localStorage.setItem('gemini-api-key', key);
-      this.geminiService.setApiKey(key);
+      localStorage.setItem('ai-api-key', key);
+      this._configureAIService(key, this.selectedModel());
       this.isConfigured.set(true);
       this.errorMessage.set('');
     }
@@ -175,11 +210,12 @@ export class AIAssistantChatComponent {
    * Clear API key
    */
   clearApiKey(): void {
-    if (!this.isBrowser) return;
+    if (!this._isBrowser) return;
 
-    localStorage.removeItem('gemini-api-key');
+    localStorage.removeItem('ai-api-key');
     this.apiKey.set('');
-    this.geminiService.setApiKey('');
+    this._geminiService.setApiKey('');
+    this._claudeService.setApiKey('');
     this.isConfigured.set(false);
   }
 
@@ -191,17 +227,18 @@ export class AIAssistantChatComponent {
     if (!text) return;
 
     if (!this.isConfigured()) {
-      this.errorMessage.set('Please configure your Gemini API key first');
+      const provider = this.selectedModel().startsWith('claude') ? 'Claude' : 'Gemini';
+      this.errorMessage.set(`Please configure your ${provider} API key first`);
       return;
     }
 
     // Build message with component context
-    const componentContext = this.buildComponentContext();
+    const componentContext = this._buildComponentContext();
     const fullMessage = text + componentContext;
 
     // Add user message (show original text only)
     this.addMessage({
-      id: this.generateId(),
+      id: this._generateId(),
       role: 'user',
       content: text,
       timestamp: Date.now()
@@ -213,12 +250,13 @@ export class AIAssistantChatComponent {
     this.errorMessage.set('');
 
     try {
-      // Get AI response (send full message with context)
-      const response = await this.geminiService.sendMessage(fullMessage, this.messages());
+      // Get AI response from the appropriate service
+      const aiService = this._getCurrentAIService();
+      const response = await aiService.sendMessage(fullMessage, this.messages());
 
       // Add AI message
       this.addMessage({
-        id: this.generateId(),
+        id: this._generateId(),
         role: 'assistant',
         content: response.message,
         timestamp: Date.now(),
@@ -227,12 +265,12 @@ export class AIAssistantChatComponent {
 
       // Execute action if present
       if (response.action) {
-        await this.executeAction(response.action);
+        await this._executeAction(response.action);
       }
     } catch (error: any) {
       this.errorMessage.set(error.message || 'Failed to get AI response');
       this.addMessage({
-        id: this.generateId(),
+        id: this._generateId(),
         role: 'assistant',
         content: `I'm sorry, I encountered an error: ${error.message}. Please check your API key and try again.`,
         timestamp: Date.now()
@@ -245,7 +283,7 @@ export class AIAssistantChatComponent {
   /**
    * Execute AI action
    */
-  private async executeAction(action: any): Promise<void> {
+  private async _executeAction(action: any): Promise<void> {
     try {
       // Add a status message based on action type
       let statusMessage = '';
@@ -254,16 +292,16 @@ export class AIAssistantChatComponent {
       if (action.type === 'CREATE_FILE_COMPONENT') {
         statusMessage = '📝 Writing component files to disk...';
         this.addMessage({
-          id: this.generateId(),
+          id: this._generateId(),
           role: 'assistant',
           content: statusMessage,
           timestamp: Date.now()
         });
 
-        await this.createFileBasedComponent(action.payload);
+        await this._createFileBasedComponent(action.payload);
 
         this.addMessage({
-          id: this.generateId(),
+          id: this._generateId(),
           role: 'assistant',
           content: '✅ Component created successfully! The dev server is rebuilding... Your component will appear shortly.',
           timestamp: Date.now()
@@ -289,13 +327,13 @@ export class AIAssistantChatComponent {
           break;
       }
 
-      const result = await this.runtimeMod.executeAction(action);
+      const result = await this._runtimeMod.executeAction(action);
       console.log('Action executed:', result);
 
       // Add status message to chat if relevant
       if (statusMessage && action.type !== 'NONE') {
         this.addMessage({
-          id: this.generateId(),
+          id: this._generateId(),
           role: 'assistant',
           content: statusMessage,
           timestamp: Date.now()
@@ -304,7 +342,7 @@ export class AIAssistantChatComponent {
     } catch (error) {
       console.error('Error executing action:', error);
       this.addMessage({
-        id: this.generateId(),
+        id: this._generateId(),
         role: 'assistant',
         content: `⚠️ Action failed: ${error}`,
         timestamp: Date.now()
@@ -315,7 +353,7 @@ export class AIAssistantChatComponent {
   /**
    * Create file-based component by calling dev server API
    */
-  private async createFileBasedComponent(payload: any): Promise<void> {
+  private async _createFileBasedComponent(payload: any): Promise<void> {
     const DEV_SERVER_URL = 'http://localhost:4201';
 
     try {
@@ -358,7 +396,7 @@ export class AIAssistantChatComponent {
   /**
    * Scroll to bottom of messages
    */
-  private scrollToBottom(): void {
+  private _scrollToBottom(): void {
     const container = this.messagesContainer();
     if (container) {
       const element = container.nativeElement;
@@ -369,7 +407,7 @@ export class AIAssistantChatComponent {
   /**
    * Generate unique message ID
    */
-  private generateId(): string {
+  private _generateId(): string {
     return `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
@@ -388,7 +426,7 @@ export class AIAssistantChatComponent {
    */
   clearChat(): void {
     this.messages.set([{
-      id: this.generateId(),
+      id: this._generateId(),
       role: 'assistant',
       content: 'Chat cleared. How can I help you?',
       timestamp: Date.now()
@@ -399,27 +437,28 @@ export class AIAssistantChatComponent {
    * Get inspector state
    */
   get inspectorActive(): boolean {
-    return this.inspector.inspecting();
+    return this._inspector.inspecting();
   }
 
   /**
    * Toggle inspector mode
    */
   toggleInspector(): void {
-    this.inspector.toggleInspection();
+    this._inspector.toggleInspection();
   }
 
   /**
    * Handle model change
    */
   onModelChange(): void {
-    if (!this.isBrowser) return;
+    if (!this._isBrowser) return;
 
     const modelId = this.selectedModel();
     localStorage.setItem('selected-model', modelId);
 
     if (this.isConfigured()) {
-      this.geminiService.setModel(modelId);
+      const apiKey = this.apiKey();
+      this._configureAIService(apiKey, modelId);
 
       // Show notification
       this.modelChangeNotification.set(true);
@@ -480,7 +519,7 @@ export class AIAssistantChatComponent {
 
     // Add notification message
     this.addMessage({
-      id: this.generateId(),
+      id: this._generateId(),
       role: 'assistant',
       content: `✨ Added <${elementInfo.component.selector}> to context. You can now ask me questions about this component!`,
       timestamp: Date.now()
@@ -492,7 +531,7 @@ export class AIAssistantChatComponent {
    */
   removeComponentFromContext(index: number): void {
     // Clear the inspector selection to prevent re-adding
-    this.inspector.clearSelection();
+    this._inspector.clearSelection();
 
     // Remove from list
     this.selectedComponents.update(components =>
@@ -505,7 +544,7 @@ export class AIAssistantChatComponent {
    */
   clearComponentContext(): void {
     // Clear the inspector selection to prevent re-adding
-    this.inspector.clearSelection();
+    this._inspector.clearSelection();
 
     // Clear all components
     this.selectedComponents.set([]);
@@ -514,7 +553,7 @@ export class AIAssistantChatComponent {
   /**
    * Build component context string for AI
    */
-  private buildComponentContext(): string {
+  private _buildComponentContext(): string {
     const components = this.selectedComponents();
     if (components.length === 0) return '';
 

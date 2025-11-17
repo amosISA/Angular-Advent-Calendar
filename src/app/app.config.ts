@@ -1,5 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, COMPILER_OPTIONS, CompilerFactory, Compiler } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { JitCompilerFactory } from '@angular/platform-browser-dynamic';
 
 import { routes } from './app.routes';
@@ -10,6 +11,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    provideHttpClient(withFetch()),
     provideClientHydration(withEventReplay()),
     // Provide JIT compiler for runtime component compilation
     { provide: COMPILER_OPTIONS, useValue: {}, multi: true },
